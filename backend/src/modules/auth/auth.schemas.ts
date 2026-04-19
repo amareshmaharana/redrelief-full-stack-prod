@@ -44,7 +44,7 @@ export const loginSchema = z
   .object({
     email: z.string().email().optional(),
     mobile: z.string().min(6).optional(),
-    role: roleSchema,
+    role: roleSchema.optional(),
     password: z.string().min(8).optional(),
   })
   .superRefine((value, ctx) => {
@@ -55,7 +55,7 @@ export const loginSchema = z
       });
     }
 
-    if (requiresPassword(value.role) && !value.password) {
+    if (value.role && requiresPassword(value.role) && !value.password) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["password"],
