@@ -59,7 +59,7 @@ const updateSchema = z.object({
 });
 
 const changePasswordSchema = z.object({
-  current_password: z.string().min(8),
+  current_password: z.string().min(8).optional(),
   new_password: z.string().min(8),
 });
 
@@ -156,13 +156,15 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     throw new AppError(404, "User not found.");
   }
 
-  if (!user.password) {
-    throw new AppError(400, "Password is not set for this account.");
-  }
+  if (user.password) {
+    if (!body.current_password) {
+      throw new AppError(400, "Current password is required.");
+    }
 
-  const valid = await comparePassword(body.current_password, user.password);
-  if (!valid) {
-    throw new AppError(400, "Current password is incorrect.");
+    const valid = await comparePassword(body.current_password, user.password);
+    if (!valid) {
+      throw new AppError(400, "Current password is incorrect.");
+    }
   }
 
   const role = (user as any).role || getDefaultRole(user);
