@@ -269,12 +269,15 @@ export const adminAddStock = asyncHandler(async (req: Request, res: Response) =>
     ? await findUserById(payload.hospital_id)
     : (await getHospitalAndClinicUsers())[0] ?? null;
 
-  if (!hospital) {
-    throw new AppError(404, "Hospital user not found.");
+  const fallbackOwnerId = req.user?.id;
+  const stockOwnerId = hospital?.id ?? fallbackOwnerId;
+
+  if (!stockOwnerId) {
+    throw new AppError(404, "Stock owner user not found.");
   }
 
   const created = await addStock({
-    hospitalId: hospital.id,
+    hospitalId: stockOwnerId,
     blood_group: payload.blood_group,
     units: payload.units,
     expiry_date: payload.expiry_date,
