@@ -252,7 +252,7 @@ async function assertRegistrationTargetAvailable(params: {
       }).lean()) ||
       (await UserModel.findOne({ email: params.email.toLowerCase() }).lean());
     if (existingEmail) {
-      throw new AppError(409, "Email already registered.");
+      throw new AppError(409, "Email already registered. Please login.");
     }
   }
 
@@ -261,7 +261,7 @@ async function assertRegistrationTargetAvailable(params: {
       phone: params.mobile,
     }).lean();
     if (existingPhone) {
-      throw new AppError(409, "Mobile already registered.");
+      throw new AppError(409, "Mobile already registered. Please login.");
     }
   }
 }
@@ -309,24 +309,135 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const payload = registerSchema.parse(req.body);
 
-  if (!hasOtpTarget(payload)) {
-    throw new AppError(400, "Email or mobile is required.");
+  const role = payload.role;
+  const Model = getRegistrationModelForRole(role);
+  const normalizedEmail = payload.email ? payload.email.toLowerCase() : null;
+  const normalizedMobile = payload.mobile ?? null;
+
+  const existingByEmail = normalizedEmail
+    ? await Model.findOne({ email: normalizedEmail }).lean()
+    : null;
+  const existingByPhone = !existingByEmail && normalizedMobile
+    ? await Model.findOne({ phone: normalizedMobile }).lean()
+    : null;
+  const existing = existingByEmail ?? existingByPhone;
+
+  if (existing) {
+    if (requiresPassword(role)) {
+      if (!payload.password || !existing.password) {
+        throw new AppError(401, "Invalid credentials.");
+      }
+      const matches = await comparePassword(payload.password, existing.password);
+      if (!matches) {
+        throw new AppError(401, "Invalid credentials.");
+      }
+    }
+
+    const session = await issueSession(existing as RoleUser);
+    res.json(ok(session, "Account already exists. Logged in."));
+    return;
   }
 
-  await assertRegistrationTargetAvailable({
-    email: payload.email,
-    mobile: payload.mobile,
-  });
+  const hashedPassword = payload.password
+    ? await hashPassword(payload.password)
+    : null;
+
+  const userData: any = {
+    id: await getNextSequence("users"),
+    name: String(payload.full_name ?? "User"),
+    email: normalizedEmail,
+    password: hashedPassword,
+    role,
+    isVerified: true,
+  };
+
+  if (role === "donor" || role === "recipient") {
+    userData.bloodGroup = toBloodGroupEnum(payload.blood_group ?? null);
+    userData.phone = payload.mobile ?? null;
+    userData.dateOfBirth = payload.date_of_birth
+      ? new Date(`${payload.date_of_birth}T00:00:00.000Z`)
+      : null;
+  }
+
+  if (role === "recipient") {
+    userData.medicalCondition = null;
+  }
+
+  if (role === "hospital" || role === "clinic") {
+    const orgName =
+      (typeof payload.hospital_name === "string" && payload.hospital_name.trim()) ||
+      String(payload.full_name ?? "Organization");
+
+    userData.hospitalName = role === "hospital" ? orgName : undefined;
+    userData.clinicName = role === "clinic" ? orgName : undefined;
+    userData.registrationNumber = payload.registration_number ?? null;
+    userData.phone = payload.mobile ?? null;
+    userData.address = payload.address ?? null;
+    userData.city = payload.city ?? null;
+    userData.state = payload.state ?? null;
+    userData.pincode = payload.pincode ?? null;
+    userData.contactPerson = payload.contact_person ?? null;
+  }
+
+  if (role === "admin") {
+    userData.phone = payload.mobile ?? null;
+    userData.permissions = [];
+  }
+
+  let user: Awaited<ReturnType<typeof Model.create>>;
+  try {
+    user = await Model.create(userData);
+  } catch (error) {
+    const mongoError = error as { code?: number };
+    if (mongoError.code !== 11000) {
+      throw error;
+    }
+
+    const fallbackExistingByEmail = normalizedEmail
+      ? await Model.findOne({ email: normalizedEmail }).lean()
+      : null;
+    const fallbackExistingByPhone = !fallbackExistingByEmail && normalizedMobile
+      ? await Model.findOne({ phone: normalizedMobile }).lean()
+      : null;
+    const fallbackExisting = fallbackExistingByEmail ?? fallbackExistingByPhone;
+
+    if (!fallbackExisting) {
+      throw new AppError(409, "Account already exists. Please login.");
+    }
+
+    const session = await issueSession(fallbackExisting as RoleUser);
+    res.json(ok(session, "Account already exists. Logged in."));
+    return;
+  }
+
+  try {
+    await ProfileModel.create({
+      id: await getNextSequence("profiles"),
+      userId: user.id,
+      phone: payload.mobile ?? null,
+      address: payload.address ?? null,
+      bloodGroup: toBloodGroupEnum(payload.blood_group ?? null),
+      dateOfBirth: payload.date_of_birth
+        ? new Date(`${payload.date_of_birth}T00:00:00.000Z`)
+        : null,
+      hospitalName: payload.hospital_name ?? null,
+      registrationNumber: payload.registration_number ?? null,
+      city: payload.city ?? null,
+      state: payload.state ?? null,
+      pincode: payload.pincode ?? null,
+      contactPerson: payload.contact_person ?? null,
+    });
+  } catch (error) {
+    const mongoError = error as { code?: number };
+    if (mongoError.code !== 11000) {
+      throw error;
+    }
+  }
+
+  const session = await issueSession(user.toObject());
 
   res.status(201).json(
-    ok(
-      {
-        email: payload.email ?? null,
-        mobile: payload.mobile ?? null,
-        role: payload.role,
-      },
-      "Registration initiated. Click Send OTP on verify page to continue.",
-    ),
+    ok(session, "Registration successful."),
   );
 });
 
@@ -345,7 +456,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError(401, "Invalid credentials.");
   }
 
-  if (requiresPassword(payload.role)) {
+  const effectiveRole = payload.role ?? getDefaultRoleForUser(identity.user);
+
+  if (requiresPassword(effectiveRole)) {
     if (!payload.password || !identity.user.password) {
       throw new AppError(401, "Invalid credentials.");
     }
@@ -372,53 +485,7 @@ export const sendOtpCode = asyncHandler(async (req: Request, res: Response) => {
   const purpose = payload.purpose as OtpPurpose;
 
   if (purpose === "register") {
-    if (!payload.registration_payload) {
-      throw new AppError(
-        400,
-        "Registration payload is required for register OTP.",
-      );
-    }
-
-    const registration = registerSchema.parse(payload.registration_payload);
-
-    if (!hasOtpTarget(registration)) {
-      throw new AppError(400, "Email or mobile is required.");
-    }
-
-    await assertRegistrationTargetAvailable({
-      email: registration.email,
-      mobile: registration.mobile,
-    });
-
-    const hashedPassword = registration.password
-      ? await hashPassword(registration.password)
-      : null;
-
-    await createAndSendOtp({
-      email: registration.email ?? undefined,
-      mobile: registration.mobile,
-      purpose,
-      role: registration.role,
-      payload: {
-        full_name: registration.full_name,
-        mobile: registration.mobile,
-        email: registration.email ?? null,
-        password_hash: hashedPassword,
-        role: registration.role,
-        blood_group: registration.blood_group ?? null,
-        address: registration.address ?? null,
-        date_of_birth: registration.date_of_birth ?? null,
-        hospital_name: registration.hospital_name ?? null,
-        registration_number: registration.registration_number ?? null,
-        city: registration.city ?? null,
-        state: registration.state ?? null,
-        pincode: registration.pincode ?? null,
-        contact_person: registration.contact_person ?? null,
-      },
-    });
-
-    res.json(ok({}, "OTP sent for register."));
-    return;
+    throw new AppError(400, "Register OTP is no longer supported.");
   }
 
   if (!hasOtpTarget(payload)) {
@@ -475,116 +542,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (payload.purpose === "register") {
-    const data = otpRecord.payloadJson as Record<string, unknown> | null;
-    if (!data) {
-      throw new AppError(400, "Registration payload missing.");
-    }
-
-    const email =
-      typeof data.email === "string" ? data.email.toLowerCase() : null;
-    const mobile = typeof data.mobile === "string" ? data.mobile : null;
-
-    if (!email && !mobile) {
-      throw new AppError(400, "Invalid registration payload.");
-    }
-
-    const existing = await findUserByIdentifier({
-      email: email ?? undefined,
-      mobile: mobile ?? undefined,
-    });
-    if (existing) {
-      throw new AppError(409, "Account already exists.");
-    }
-
-    const role = data.role as Role;
-    const Model = getRegistrationModelForRole(role);
-
-    const userData: any = {
-      id: await getNextSequence("users"),
-      name: String(data.full_name ?? "User"),
-      email,
-      password:
-        typeof data.password_hash === "string" ? data.password_hash : null,
-      role,
-      isVerified: true,
-    };
-
-    // Add role-specific fields
-    if (role === "donor" || role === "recipient") {
-      (userData as any).bloodGroup = toBloodGroupEnum(
-        typeof data.blood_group === "string" ? data.blood_group : null,
-      );
-      (userData as any).phone = mobile;
-      (userData as any).dateOfBirth =
-        typeof data.date_of_birth === "string" && data.date_of_birth
-          ? new Date(`${data.date_of_birth}T00:00:00.000Z`)
-          : null;
-    }
-
-    if (role === "donor") {
-      // Donor specific fields already set above
-    }
-
-    if (role === "recipient") {
-      // Recipient can have medicalCondition
-      (userData as any).medicalCondition = data.medical_condition ?? null;
-    }
-
-    if (role === "hospital" || role === "clinic") {
-      const orgName =
-        (typeof data.hospital_name === "string" && data.hospital_name.trim()) ||
-        (typeof data.clinic_name === "string" && data.clinic_name.trim()) ||
-        String(data.full_name ?? "Organization");
-
-      (userData as any).hospitalName =
-        role === "hospital" ? orgName : undefined;
-      (userData as any).clinicName = role === "clinic" ? orgName : undefined;
-      (userData as any).registrationNumber = data.registration_number ?? null;
-      (userData as any).phone = mobile;
-      (userData as any).address = data.address ?? null;
-      (userData as any).city = data.city ?? null;
-      (userData as any).state = data.state ?? null;
-      (userData as any).pincode = data.pincode ?? null;
-      (userData as any).contactPerson = data.contact_person ?? null;
-    }
-
-    if (role === "admin") {
-      (userData as any).phone = mobile;
-      (userData as any).permissions = [];
-    }
-
-    const user = await Model.create(userData);
-
-    // Also create a profile for backward compatibility
-    await ProfileModel.create({
-      id: await getNextSequence("profiles"),
-      userId: user.id,
-      phone: mobile,
-      address: data.address ?? null,
-      bloodGroup: toBloodGroupEnum(
-        typeof data.blood_group === "string" ? data.blood_group : null,
-      ),
-      dateOfBirth:
-        typeof data.date_of_birth === "string" && data.date_of_birth
-          ? new Date(`${data.date_of_birth}T00:00:00.000Z`)
-          : null,
-      hospitalName: data.hospital_name ?? null,
-      registrationNumber: data.registration_number ?? null,
-      city: data.city ?? null,
-      state: data.state ?? null,
-      pincode: data.pincode ?? null,
-      contactPerson: data.contact_person ?? null,
-    });
-
-    await OtpCodeModel.updateOne(
-      { id: otpRecord.id },
-      { $set: { consumedAt: new Date() } },
-    );
-
-    const session = await issueSession(user.toObject());
-
-    res.status(201).json(ok(session, "Registration successful."));
-    return;
+    throw new AppError(400, "Register OTP is no longer supported.");
   }
 
   if (payload.purpose === "login") {
