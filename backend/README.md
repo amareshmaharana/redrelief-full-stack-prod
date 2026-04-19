@@ -1,98 +1,71 @@
-# RedRelief Backend
+# RedRelief Backend 🩸
 
-Production-ready REST and realtime backend for the RedRelief blood donation platform.
+Backend service for RedRelief, implemented with Node.js, TypeScript, Express, and MongoDB.
 
-## Overview
+This README documents what is currently implemented in this repository.
 
-This service provides authentication, role-based workflows, blood stock management, request processing, notifications, and public data endpoints for the RedRelief frontend.
+## What Is Implemented ✅
 
-## Core Capabilities
+- Role-based APIs for `admin`, `donor`, `recipient`, `hospital`, and `clinic`
+- JWT access + refresh token auth
+- Direct registration flow (no OTP required for registration)
+- Login with optional role (email/mobile can auto-detect user role)
+- OTP endpoints for login/password-reset use cases only
+- Forgot password via reset-link token flow
+- Blood stock, camp, request, profile, notification, and public modules
+- Socket.IO realtime notifications with optional Redis adapter
 
-- Role-based access control for `admin`, `donor`, `recipient`, `hospital`, and `clinic` users.
-- JWT access and refresh token authentication.
-- OTP-based registration, login, and password reset flows.
-- Password login for privileged organization roles.
-- Camp publishing and public camp listing.
-- Blood stock CRUD for hospitals, clinics, and administrators.
-- Donation request and blood request workflows with admin review.
-- In-app notification persistence with mark-read support.
-- Socket.IO realtime notification delivery.
-- Public stock summary and health endpoints.
-- Newsletter subscription and welcome email delivery.
-- Multipart request handling for medical reports and ID proofs.
+## Important Current Auth Behavior 🔐
 
-## Technology Stack
+- `POST /api/register` creates account and returns session tokens immediately.
+- `POST /api/send-otp` with `purpose=register` is intentionally rejected.
+- `POST /api/verify-otp` with `purpose=register` is intentionally rejected.
+- `POST /api/login` accepts optional `role`.
+- Password is required for `admin`, `hospital`, and `clinic` login.
+- Registration is idempotent per role in current flow (existing same-role account can return session).
 
-- Node.js
-- TypeScript
+## Stack 🧰
+
 - Express
-- MongoDB with Mongoose
+- Mongoose (MongoDB)
 - Zod validation
-- JSON Web Tokens
+- JWT (`jsonwebtoken`)
 - Socket.IO
-- Redis adapter for optional Socket.IO scaling
-- Resend for outbound email
-- Multer for multipart parsing
+- Multer (memory storage)
+- Resend/Nodemailer utilities for outbound email
 
-## Repository Layout
+## Project Layout 🗂️
 
 ```text
 backend/
-├── src/
-│   ├── app.ts
-│   ├── server.ts
-│   ├── config/
-│   ├── middleware/
-│   ├── models/
-│   ├── modules/
-│   └── utils/
-├── docs/
-├── package.json
-└── tsconfig.json
+  src/
+    app.ts
+    server.ts
+    config/
+    middleware/
+    models/
+    modules/
+    utils/
+  docs/
+  package.json
+  tsconfig.json
 ```
 
-## Prerequisites
-
-- Node.js 18 or newer
-- MongoDB connection string
-- Optional Redis instance for Socket.IO scaling
-- Optional Resend account for OTP and password reset emails
-
-## Setup
-
-1. Install dependencies.
+## Run ▶️
 
 ```bash
 npm install
-```
-
-2. Create a `.env` file in `backend/`.
-
-3. Start the development server.
-
-```bash
 npm run dev
 ```
 
-4. Build the production bundle.
+Production build:
 
 ```bash
 npm run build
-```
-
-5. Start the compiled server.
-
-```bash
 npm start
 ```
 
-## Available Scripts
-
-- `npm run dev` runs the server with `ts-node-dev`.
-- `npm run build` compiles TypeScript to `dist/`.
-- `npm start` runs the compiled application.
-
-## Environment Variables
+## Environment ⚙️
 
 Required:
 
@@ -100,92 +73,61 @@ Required:
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
 
-Common:
+Common defaults from code:
 
-- `NODE_ENV` defaults to `development`
-- `PORT` defaults to `5000`
-- `JWT_ACCESS_EXPIRES` defaults to `15m`
-- `JWT_REFRESH_EXPIRES` defaults to `7d`
-- `CORS_ORIGIN` defaults to `http://localhost:8080`
-- `FRONTEND_URL` is used in password reset links
+- `PORT=5000`
+- `CORS_ORIGIN=http://localhost:8080`
+- `JWT_ACCESS_EXPIRES=15m`
+- `JWT_REFRESH_EXPIRES=7d`
 
-MongoDB fallback and DNS options:
+Optional:
 
-- `MONGODB_URI_FALLBACK`
-- `MONGODB_URI_DIRECT`
-- `MONGODB_DNS_SERVERS`
+- `REDIS_URL` (Socket.IO adapter)
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- `FRONTEND_URL` (reset link base)
 
-Optional realtime scaling:
+## Base Paths 🧭
 
-- `REDIS_URL`
+- Health: `GET /health`
+- API: `/api`
 
-Email configuration:
+## Route Summary (Current) 🛣️
 
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
+Auth (`/api`):
 
-SMTP variables are present in config, but the implemented mail flow currently uses Resend.
+- `POST /register`
+- `POST /login`
+- `POST /send-otp`
+- `POST /verify-otp`
+- `POST /forgot-password/request`
+- `POST /forgot-password/send-otp`
+- `POST /forgot-password/reset`
+- `POST /refresh-token`
 
-## Runtime Endpoints
-
-- Health check: `GET /health`
-- API base path: `/api`
-
-## Authentication
-
-All protected routes require an access token in the Authorization header.
-
-```http
-Authorization: Bearer <access_token>
-```
-
-### Auth Routes
-
-- `POST /api/register`
-- `POST /api/login`
-- `POST /api/send-otp`
-- `POST /api/verify-otp`
-- `POST /api/forgot-password/request`
-- `POST /api/forgot-password/send-otp`
-- `POST /api/forgot-password/reset`
-- `POST /api/refresh-token`
-
-## API Modules
-
-### Profile
-
-Base path: `/api/user`
+Profile (`/api/user`):
 
 - `GET /profile`
 - `PATCH /profile`
 - `POST /change-password`
 
-### Notifications
-
-Base path: `/api/notifications`
+Notifications (`/api/notifications`):
 
 - `GET /`
 - `POST /mark-read`
 
-### Donor
-
-Base path: `/api/donor`
+Donor (`/api/donor`):
 
 - `GET /camps`
 - `GET /request-status`
 - `POST /donation-request`
 
-### Recipient
-
-Base path: `/api/recipient`
+Recipient (`/api/recipient`):
 
 - `GET /stock`
 - `GET /request-status`
 - `POST /blood-request`
 
-### Hospital
-
-Base path: `/api/hospital`
+Hospital (`/api/hospital`):
 
 - `GET /stock`
 - `POST /stock`
@@ -194,9 +136,7 @@ Base path: `/api/hospital`
 - `GET /request-status`
 - `POST /blood-request`
 
-### Clinic
-
-Base path: `/api/clinic`
+Clinic (`/api/clinic`):
 
 - `GET /stock`
 - `POST /stock`
@@ -205,9 +145,7 @@ Base path: `/api/clinic`
 - `GET /request-status`
 - `POST /blood-request`
 
-### Admin
-
-Base path: `/api/admin`
+Admin (`/api/admin`):
 
 - `GET /users`
 - `PATCH /users/:userId/verification`
@@ -226,78 +164,27 @@ Base path: `/api/admin`
 - `GET /clinics-list`
 - `GET /dashboard-stats`
 
-### Public
-
-Base path: `/api/public`
+Public (`/api/public`):
 
 - `GET /camps`
 - `GET /stock-summary`
 - `GET /stock-health`
 - `POST /subscribe`
 
-## Realtime Notifications
+## Realtime 📡
 
-Socket.IO is initialized with the HTTP server.
+- Socket.IO authenticates using access token in `socket.handshake.auth.token`.
+- Users join room `user:<id>`.
+- Notification event: `notification:new`.
+- Redis adapter is enabled only when `REDIS_URL` is configured.
 
-Client connection example:
+## Upload Handling 📎
 
-```ts
-const socket = io("http://localhost:5000", {
-  auth: { token: accessToken },
-});
-```
+- Multer memory storage, 5 MB max file size.
+- Used in request submission endpoints (`medical_report`, `id_proof`).
 
-Behavior:
+## Notes 📝
 
-- Users are joined to a per-user room on connect.
-- Notification updates are emitted as `notification:new`.
-- Redis is used only when configured; the server runs without it.
-
-## Request Lifecycle
-
-- Donation requests and blood requests are created in a pending state.
-- Admin users can approve or reject requests.
-- Review actions create notifications and publish realtime updates to the requester.
-- Blood stock summary aggregates units by blood group.
-
-## File Uploads
-
-Multer is configured with in-memory storage and a 5 MB file size limit.
-
-Current upload-enabled routes:
-
-- Donor donation request: `medical_report`
-- Hospital blood request: `medical_report`
-- Clinic blood request: `medical_report`
-- Recipient blood request: `medical_report` and `id_proof`
-
-Persistent file storage is not implemented in this backend. The current setup only parses multipart form-data for request submission.
-
-## Response Shape
-
-Success response:
-
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Optional message"
-}
-```
-
-Error response:
-
-```json
-{
-  "success": false,
-  "message": "Error message",
-  "data": {}
-}
-```
-
-## Production Notes
-
-- Global rate limiting is enabled at 120 requests per minute per IP.
-- CORS is credential-aware and controlled through `CORS_ORIGIN`.
-- MongoDB connection fallback is supported for Atlas DNS or URI failover scenarios.
-- Socket.IO continues operating even if Redis is unavailable.
+- Global rate limit: 120 requests/minute/IP.
+- CORS is controlled by `CORS_ORIGIN`.
+- API responses follow the `{ success, data, message }` envelope.
