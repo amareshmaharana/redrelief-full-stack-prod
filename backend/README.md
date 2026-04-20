@@ -9,7 +9,8 @@ This README documents what is currently implemented in this repository.
 - Role-based APIs for `admin`, `donor`, `recipient`, `hospital`, and `clinic`
 - JWT access + refresh token auth
 - Direct registration flow (no OTP required for registration)
-- Login with optional role (email/mobile can auto-detect user role)
+- Login with role auto-detection from stored user records only
+- Role lookup endpoint for login UX (`check-email-role`)
 - OTP endpoints for login/password-reset use cases only
 - Forgot password via reset-link token flow
 - Blood stock, camp, request, profile, notification, and public modules
@@ -20,8 +21,10 @@ This README documents what is currently implemented in this repository.
 - `POST /api/register` creates account and returns session tokens immediately.
 - `POST /api/send-otp` with `purpose=register` is intentionally rejected.
 - `POST /api/verify-otp` with `purpose=register` is intentionally rejected.
-- `POST /api/login` accepts optional `role`.
+- `POST /api/login` does not accept a client role field; role is read from the matched database record.
+- `POST /api/check-email-role` returns the detected role and whether password is required for that account.
 - Password is required for `admin`, `hospital`, and `clinic` login.
+- Password is optional for `donor` and `recipient` login.
 - Registration is idempotent per role in current flow (existing same-role account can return session).
 
 ## Stack 🧰
@@ -97,6 +100,7 @@ Auth (`/api`):
 
 - `POST /register`
 - `POST /login`
+- `POST /check-email-role`
 - `POST /send-otp`
 - `POST /verify-otp`
 - `POST /forgot-password/request`
