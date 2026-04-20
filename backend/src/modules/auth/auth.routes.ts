@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  checkEmailRole,
   forgotPasswordReset,
   forgotPasswordSendOtp,
   login,
@@ -13,6 +14,7 @@ export const authRoutes = Router();
 
 authRoutes.post("/register", register);
 authRoutes.post("/login", login);
+authRoutes.post("/check-email-role", checkEmailRole);
 authRoutes.post("/send-otp", sendOtpCode);
 authRoutes.post("/verify-otp", verifyOtp);
 authRoutes.post("/forgot-password/request", forgotPasswordSendOtp);
