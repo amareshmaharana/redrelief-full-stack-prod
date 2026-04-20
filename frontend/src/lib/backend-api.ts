@@ -113,6 +113,16 @@ export const authApi = {
       body: JSON.stringify(payload),
     }),
 
+  checkEmailRole: (email: string) =>
+    apiRequest<{ role: string; requiresPassword: boolean }>(
+      "/api/check-email-role",
+      {
+        method: "POST",
+        auth: false,
+        body: JSON.stringify({ email }),
+      },
+    ),
+
   sendOtp: (payload: {
     mobile?: string;
     email?: string;
