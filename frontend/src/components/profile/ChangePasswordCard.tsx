@@ -54,7 +54,7 @@ export function ChangePasswordCard() {
       <CardContent>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label>Current Password</Label>
+            <Label requiredMark>Current Password</Label>
             <div className="relative">
               <Input
                 type={showCurrent ? "text" : "password"}
@@ -73,7 +73,7 @@ export function ChangePasswordCard() {
           </div>
 
           <div className="space-y-2">
-            <Label>New Password</Label>
+            <Label requiredMark>New Password</Label>
             <div className="relative">
               <Input
                 type={showNew ? "text" : "password"}
@@ -93,7 +93,7 @@ export function ChangePasswordCard() {
           </div>
 
           <div className="space-y-2">
-            <Label>Confirm New Password</Label>
+            <Label requiredMark>Confirm New Password</Label>
             <div className="relative">
               <Input
                 type={showConfirm ? "text" : "password"}
