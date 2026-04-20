@@ -386,7 +386,7 @@ Add a LICENSE file if you plan public/open-source distribution.
 - Blood donation volunteers and healthcare workers
 - Contributors and reviewers improving reliability and UX
 
-Save lives, one drop at a time. Join the RedRelief community today.
+<p align="center">Save lives, one drop at a time. Join the RedRelief community today.</p>
 
 <!-- ---
 
