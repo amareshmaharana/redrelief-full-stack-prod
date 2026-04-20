@@ -60,7 +60,7 @@ export default function ForgotPassword() {
         {!submitted ? (
           <form onSubmit={requestReset} className="space-y-4">
             <div className="space-y-2">
-              <Label>Email Address</Label>
+              <Label requiredMark>Email Address</Label>
               <Input
                 type="email"
                 value={email}
