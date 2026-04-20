@@ -1,15 +1,15 @@
 # RedRelief — Blood Donation Management System 🔥
 
-> A production-oriented full-stack platform to connect donors, recipients, hospitals, clinics, and admins in one real-time blood donation ecosystem.
+> A production-oriented full-stack platform that connects donors, recipients, hospitals, clinics, and admins in one real-time blood donation ecosystem.
 
 [![Repo Stars](https://img.shields.io/github/stars/OWNER/REPO?style=social)](https://github.com/OWNER/REPO/stargazers)
 [![Repo Forks](https://img.shields.io/github/forks/OWNER/REPO?style=social)](https://github.com/OWNER/REPO/network/members)
 [![Issues](https://img.shields.io/github/issues/OWNER/REPO)](https://github.com/OWNER/REPO/issues)
 [![License](https://img.shields.io/github/license/OWNER/REPO)](LICENSE)
 
-[![Demo](https://img.shields.io/badge/Demo-Live%20Link-ff4d4f?style=for-the-badge)](#-demo--live-link)
-[![API](https://img.shields.io/badge/API-REST-0ea5e9?style=for-the-badge)](#-api-endpoints)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-22c55e?style=for-the-badge)](#-future-improvements)
+![Demo](https://img.shields.io/badge/Demo-Live%20Link-ff4d4f?style=for-the-badge)
+![API](https://img.shields.io/badge/API-REST-0ea5e9?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Active%20Development-22c55e?style=for-the-badge)
 
 ---
 
@@ -19,8 +19,8 @@
 
 The platform provides:
 
-- Fast donor/recipient onboarding
-- Role-based operational dashboards
+- Direct registration and login flows with database-driven role detection
+- Role-based operational dashboards with role-themed button, hover, and profile styling
 - Hospital and clinic stock workflows
 - Admin review and request control
 - Real-time notification delivery
@@ -35,8 +35,9 @@ In critical care scenarios, minutes matter. **RedRelief** helps bridge communica
 
 - 🔐 JWT-based authentication with access + refresh tokens
 - 👥 Role-based access control for Admin, Donor, Recipient, Hospital, Clinic
-- 🧠 Auto-role detection support in login flow
+- 🧠 Login role is detected from the stored database record only
 - 📝 Direct registration with immediate session issuance
+- ✉️ Donor and recipient can log in with email only; admin, hospital, and clinic require password
 - 🏥 Hospital/Clinic blood stock CRUD
 - 🩸 Recipient/Hospital/Clinic blood request workflows
 - ✅ Admin review pipelines for donation and blood requests
@@ -45,6 +46,7 @@ In critical care scenarios, minutes matter. **RedRelief** helps bridge communica
 - 🌐 Public endpoints for camps, stock summary, and stock health
 - 📬 Newsletter subscription endpoint
 - 📁 Multipart request handling for medical docs and proofs
+- 🎨 Shared button and hover colors are themed per role across dashboards and profiles
 
 ---
 
@@ -52,7 +54,7 @@ In critical care scenarios, minutes matter. **RedRelief** helps bridge communica
 
 ```text
 Frontend (React + Vite + TypeScript)
-  -> API Client Layer (token handling, refresh retry, error normalization)
+  -> API Client Layer (token handling, refresh retry, error normalization, role lookup)
   -> Backend REST API (Express + TypeScript)
   -> MongoDB (Mongoose models)
   -> Socket.IO (realtime notifications)
@@ -62,6 +64,7 @@ Frontend (React + Vite + TypeScript)
 - Frontend and backend are separated into dedicated folders (`frontend/`, `backend/`)
 - Frontend consumes REST endpoints and listens to realtime events
 - Backend applies role guards at route level and emits per-user events
+- Frontend role dashboards inherit a role theme wrapper so shared buttons, hover states, and profile accents match the active role
 
 ---
 
@@ -75,6 +78,12 @@ Frontend (React + Vite + TypeScript)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![React Router](https://img.shields.io/badge/React%20Router-6-CA4245?logo=reactrouter&logoColor=white)
 ![React Query](https://img.shields.io/badge/TanStack%20Query-5-FF4154?logo=reactquery&logoColor=white)
+
+Frontend notes:
+
+- Login form uses live role lookup before submit feedback is shown
+- Password visibility and required markers are handled through shared UI components
+- Public role chooser routes users into the correct login/register flow
 
 ### Backend
 
@@ -199,6 +208,15 @@ npm run dev
 - Access token and refresh token are issued on login/register
 - Frontend injects `Authorization: Bearer <token>` automatically
 - On `401`, frontend attempts one refresh via `/api/refresh-token`
+- Login uses the role stored in the matched database record, not a client-provided role field
+- `donor` and `recipient` accounts can log in with email only
+- `admin`, `hospital`, and `clinic` accounts require password during login
+
+### Frontend auth UX
+
+- `POST /api/check-email-role` is used by the login form to detect the role for a typed email
+- The login UI shows `Login with <role>` after a valid email matches an account
+- The password label becomes required automatically for `admin`, `hospital`, and `clinic`
 
 ### Roles
 
@@ -206,6 +224,7 @@ npm run dev
 - **Donor**: camp access, donation request flow, status tracking
 - **Recipient**: blood request flow, stock visibility, status tracking
 - **Hospital / Clinic**: stock management + request workflows
+- Frontend role color mapping currently uses red for admin, emerald for donor, indigo for recipient, and amber for hospital/clinic
 
 ---
 
@@ -214,10 +233,11 @@ npm run dev
 ### Core endpoints
 
 | Module | Method | Endpoint |
-|---|---|---|
+| --- | --- | --- |
 | Health | GET | `/health` |
 | Auth | POST | `/api/register` |
 | Auth | POST | `/api/login` |
+| Auth | POST | `/api/check-email-role` |
 | Auth | POST | `/api/send-otp` |
 | Auth | POST | `/api/verify-otp` |
 | Auth | POST | `/api/forgot-password/request` |
@@ -232,7 +252,7 @@ npm run dev
 ### Admin endpoints
 
 | Method | Endpoint |
-|---|---|
+| --- | --- |
 | GET | `/api/admin/users` |
 | PATCH | `/api/admin/users/:userId/verification` |
 | GET | `/api/admin/camps` |
@@ -253,11 +273,25 @@ npm run dev
 ### Public endpoints
 
 | Method | Endpoint |
-|---|---|
+| --- | --- |
 | GET | `/api/public/camps` |
 | GET | `/api/public/stock-summary` |
 | GET | `/api/public/stock-health` |
 | POST | `/api/public/subscribe` |
+
+### Frontend routes of note
+
+| Route | Purpose |
+| --- | --- |
+| `/login` | Login chooser |
+| `/login/form` | Login form with live role detection |
+| `/register` | Register chooser |
+| `/register/form` | Role-specific registration form |
+| `/admin/*` | Admin dashboard and management pages |
+| `/donor/*` | Donor dashboard and request pages |
+| `/recipient/*` | Recipient dashboard and request pages |
+| `/hospital/*` | Hospital dashboard and stock/request pages |
+| `/clinic/*` | Clinic dashboard and stock/request pages |
 
 ---
 
@@ -321,6 +355,8 @@ npm run lint
 
 Backend currently includes TypeScript build checks and runtime validation through Zod.
 
+For an end-to-end check, start both apps locally and test registration, login, profile updates, request submission, and notification delivery.
+
 ---
 
 ## 🤝 Contributing
@@ -333,6 +369,7 @@ Contributions are welcome.
 4. Push and open a Pull Request
 
 Please keep API contracts, role checks, and docs synchronized when changing flows.
+Keep role-aware UI tokens and shared component behavior synchronized when changing dashboard styling.
 
 ---
 
@@ -349,11 +386,7 @@ Add a LICENSE file if you plan public/open-source distribution.
 - Blood donation volunteers and healthcare workers
 - Contributors and reviewers improving reliability and UX
 
-<br/>
-
-<p align="center">
-  <sub>Save lives, one drop at a time.<br/>Join the RedRelief community today.</sub>
-</p>
+Save lives, one drop at a time. Join the RedRelief community today.
 
 <!-- ---
 
