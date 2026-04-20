@@ -43,7 +43,8 @@ export default function RegisterForm() {
 
   const medicalOrgMode = role === "hospital" || role === "clinic";
   const donorMode = role === "donor";
-  const passwordRequired = role === "hospital" || role === "clinic" || role === "admin";
+  const passwordRequired =
+    role === "hospital" || role === "clinic" || role === "admin";
 
   useEffect(() => {
     const roleParam = searchParams.get("role") as UserRole | null;
@@ -101,7 +102,7 @@ export default function RegisterForm() {
         error instanceof Error ? error.message : "Registration failed.";
       toast.error(message);
       if (error instanceof Error && /already registered/i.test(error.message)) {
-        navigate("/login/form?role=auto", { replace: true });
+        navigate("/login/form", { replace: true });
       }
     } finally {
       setLoading(false);
@@ -111,20 +112,28 @@ export default function RegisterForm() {
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 shadow-card sm:p-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <div className="mb-6 text-center space-y-2">
             <h1 className="text-2xl font-bold text-foreground">
               Register as {role.charAt(0).toUpperCase() + role.slice(1)}
             </h1>
-            <p className="text-sm text-muted-foreground">You selected this role in access chooser.</p>
-            <Link to={`/register?role=${role}`} className="text-xs font-medium text-primary hover:underline">
+            <p className="text-sm text-muted-foreground">
+              You selected this role in access chooser.
+            </p>
+            <Link
+              to={`/register?role=${role}`}
+              className="text-xs font-medium text-primary hover:underline"
+            >
               Change role
             </Link>
           </div>
 
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Full Name</Label>
+              <Label requiredMark>Full Name</Label>
               <Input
                 value={formData.full_name}
                 onChange={(event) =>
@@ -143,19 +152,25 @@ export default function RegisterForm() {
               <Input
                 value={formData.mobile}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, mobile: event.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    mobile: event.target.value,
+                  }))
                 }
                 placeholder="+919876543210"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label requiredMark={!formData.mobile}>Email</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, email: event.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    email: event.target.value,
+                  }))
                 }
                 placeholder="you@example.com"
                 required={!formData.mobile}
@@ -163,7 +178,7 @@ export default function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label>
+              <Label requiredMark={passwordRequired}>
                 Password {passwordRequired ? "(Required)" : "(Optional)"}
               </Label>
               <Input
@@ -181,7 +196,7 @@ export default function RegisterForm() {
             </div>
 
             <div className="space-y-2">
-              <Label>Address</Label>
+              <Label requiredMark={medicalOrgMode}>Address</Label>
               <Input
                 value={formData.address}
                 onChange={(event) =>
@@ -237,7 +252,9 @@ export default function RegisterForm() {
             {medicalOrgMode && (
               <>
                 <div className="space-y-2">
-                  <Label>{role === "clinic" ? "Clinic Name" : "Hospital Name"}</Label>
+                  <Label requiredMark>
+                    {role === "clinic" ? "Clinic Name" : "Hospital Name"}
+                  </Label>
                   <Input
                     value={formData.hospital_name}
                     onChange={(event) =>
@@ -246,12 +263,16 @@ export default function RegisterForm() {
                         hospital_name: event.target.value,
                       }))
                     }
-                    placeholder={role === "clinic" ? "e.g. CarePlus Clinic" : "e.g. City General Hospital"}
+                    placeholder={
+                      role === "clinic"
+                        ? "e.g. CarePlus Clinic"
+                        : "e.g. City General Hospital"
+                    }
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Registration Number</Label>
+                  <Label requiredMark>Registration Number</Label>
                   <Input
                     value={formData.registration_number}
                     onChange={(event) =>
@@ -265,7 +286,7 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>City</Label>
+                  <Label requiredMark>City</Label>
                   <Input
                     value={formData.city}
                     onChange={(event) =>
@@ -279,7 +300,7 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>State</Label>
+                  <Label requiredMark>State</Label>
                   <Input
                     value={formData.state}
                     onChange={(event) =>
@@ -293,7 +314,7 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Pincode</Label>
+                  <Label requiredMark>Pincode</Label>
                   <Input
                     value={formData.pincode}
                     onChange={(event) =>
@@ -307,7 +328,7 @@ export default function RegisterForm() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Contact Person</Label>
+                  <Label requiredMark>Contact Person</Label>
                   <Input
                     value={formData.contact_person}
                     onChange={(event) =>
