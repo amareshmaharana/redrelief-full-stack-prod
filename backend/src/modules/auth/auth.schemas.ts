@@ -42,24 +42,15 @@ export const registerSchema = z
 
 export const loginSchema = z
   .object({
-    email: z.string().email().optional(),
-    mobile: z.string().min(6).optional(),
-    role: roleSchema.optional(),
+    email: z.string().email(),
     password: z.string().min(8).optional(),
   })
   .superRefine((value, ctx) => {
-    if (!value.email && !value.mobile) {
+    if (!value.email.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Email or mobile is required.",
-      });
-    }
-
-    if (value.role && requiresPassword(value.role) && !value.password) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["password"],
-        message: "Password is required for admin, hospital, and clinic.",
+        path: ["email"],
+        message: "Email is required.",
       });
     }
   });
