@@ -105,6 +105,59 @@
     @apply border-border;
   }
 
+  .role-theme-admin {
+    --primary: 0 72% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 60% 96%;
+    --secondary-foreground: 0 72% 41%;
+    --accent: 0 60% 96%;
+    --accent-foreground: 0 72% 41%;
+    --ring: 0 72% 51%;
+    --sidebar-primary: 0 72% 51%;
+    --sidebar-ring: 0 72% 51%;
+    --shadow-elevated: 0 12px 40px -8px hsl(0 72% 51% / 0.15);
+  }
+
+  .role-theme-donor {
+    --primary: 152 72% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 152 42% 95%;
+    --secondary-foreground: 152 64% 28%;
+    --accent: 152 42% 95%;
+    --accent-foreground: 152 64% 28%;
+    --ring: 152 72% 34%;
+    --sidebar-primary: 152 72% 34%;
+    --sidebar-ring: 152 72% 34%;
+    --shadow-elevated: 0 12px 40px -8px hsl(152 72% 34% / 0.18);
+  }
+
+  .role-theme-recipient {
+    --primary: 224 76% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 224 70% 95%;
+    --secondary-foreground: 226 62% 42%;
+    --accent: 224 70% 95%;
+    --accent-foreground: 226 62% 42%;
+    --ring: 224 76% 52%;
+    --sidebar-primary: 224 76% 52%;
+    --sidebar-ring: 224 76% 52%;
+    --shadow-elevated: 0 12px 40px -8px hsl(224 76% 52% / 0.2);
+  }
+
+  .role-theme-hospital,
+  .role-theme-clinic {
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 39 90% 94%;
+    --secondary-foreground: 34 84% 38%;
+    --accent: 39 90% 94%;
+    --accent-foreground: 34 84% 38%;
+    --ring: 38 92% 50%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-ring: 38 92% 50%;
+    --shadow-elevated: 0 12px 40px -8px hsl(38 92% 50% / 0.2);
+  }
+
   /* Hide default scrollbar */
   html {
     scrollbar-width: none; /* Firefox */
