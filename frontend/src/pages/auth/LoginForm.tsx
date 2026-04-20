@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Mail, Phone } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -9,37 +9,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authApi } from "@/lib/backend-api";
 import { setAuthSession } from "@/lib/auth-session";
-import type { UserRole } from "@/types";
-
-type LoginMethod = "email" | "mobile";
-type LoginRole = UserRole | "auto";
-
-const validRoles: LoginRole[] = ["auto", "admin", "donor", "recipient", "hospital", "clinic"];
-
-function isLoginRole(value: string | null): value is LoginRole {
-  return Boolean(value && validRoles.includes(value as LoginRole));
-}
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>("email");
-  const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<LoginRole>("auto");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [detectedRole, setDetectedRole] = useState<string | null>(null);
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [emailCheckingLoading, setEmailCheckingLoading] = useState(false);
 
-  const passwordRequired = role === "admin" || role === "hospital" || role === "clinic";
+  const isValidEmailFormat = (emailValue: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailValue);
+  };
 
-  useEffect(() => {
-    const roleParam = searchParams.get("role");
-    if (isLoginRole(roleParam)) {
-      setRole(roleParam);
-    } else {
-      setRole("auto");
+  const validateEmail = async (emailValue: string) => {
+    if (!emailValue || !emailValue.trim()) {
+      setDetectedRole(null);
+      setPasswordRequired(false);
+      return;
     }
-  }, [searchParams]);
+
+    setEmailCheckingLoading(true);
+    try {
+      const response = await authApi.checkEmailRole(emailValue);
+      setDetectedRole(response.role);
+      setPasswordRequired(response.requiresPassword);
+    } catch {
+      setDetectedRole(null);
+      setPasswordRequired(false);
+    } finally {
+      setEmailCheckingLoading(false);
+    }
+  };
+
+  const handleEmailChange = (emailValue: string) => {
+    setEmail(emailValue);
+    // Debounce the email validation
+    const timeout = setTimeout(() => {
+      validateEmail(emailValue);
+    }, 500);
+    return () => clearTimeout(timeout);
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -47,15 +59,9 @@ export default function LoginForm() {
 
     try {
       const payload: Record<string, unknown> = {
-        ...(role === "auto" ? {} : { role }),
-        ...(passwordRequired ? { password } : {}),
+        email,
+        ...(password.trim() ? { password } : {}),
       };
-
-      if (loginMethod === "email") {
-        payload.email = email;
-      } else {
-        payload.mobile = mobile;
-      }
 
       const response = await authApi.login(payload);
       setAuthSession({
@@ -76,90 +82,77 @@ export default function LoginForm() {
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-card sm:p-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <div className="mb-6 text-center space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">
-              {role === "auto" ? "Login (Auto Detect Role)" : `Login as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">Login</h1>
             <p className="text-sm text-muted-foreground">
-              {role === "auto"
-                ? "Role will be detected automatically from your account."
-                : "You selected this role in access chooser."}
+              Use your email or password to sign in.
             </p>
-            <Link to="/login" className="text-xs font-medium text-primary hover:underline">
-              Change role
+            <Link
+              to="/login"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Back to sign-in options
             </Link>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Login with</Label>
-              <div className="flex overflow-hidden rounded-lg border border-border">
-                <button
-                  type="button"
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
-                    loginMethod === "email"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:bg-muted"
-                  }`}
-                  onClick={() => setLoginMethod("email")}
+              <Label requiredMark>Email Address</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(event) => handleEmailChange(event.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+              {detectedRole && (
+                <motion.p
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs font-medium text-muted-foreground"
                 >
-                  <Mail className="h-4 w-4" />
-                  Email
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
-                    loginMethod === "mobile"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:bg-muted"
-                  }`}
-                  onClick={() => setLoginMethod("mobile")}
-                >
-                  <Phone className="h-4 w-4" />
-                  Mobile
-                </button>
-              </div>
+                  Login with{" "}
+                  <span className="font-semibold text-emerald-600">
+                    {detectedRole}
+                  </span>
+                </motion.p>
+              )}
+              {!detectedRole &&
+                email &&
+                !emailCheckingLoading &&
+                isValidEmailFormat(email) && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs font-medium text-red-600 flex items-center gap-1"
+                  >
+                    <AlertCircle className="h-3 w-3" /> User not found
+                  </motion.p>
+                )}
             </div>
 
-            {loginMethod === "email" ? (
-              <div className="space-y-2">
-                <Label>Email Address</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Mobile Number</Label>
-                <Input
-                  type="tel"
-                  value={mobile}
-                  onChange={(event) => setMobile(event.target.value)}
-                  placeholder="+919876543210"
-                  required
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label {...(passwordRequired ? { requiredMark: true } : {})}>
+                Password{!passwordRequired && " (Optional)"}
+              </Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter password"
+                required={passwordRequired}
+              />
+            </div>
 
-            {passwordRequired && (
-              <div className="space-y-2">
-                <Label>Password</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Enter password"
-                  required
-                />
-              </div>
-            )}
-
-            <Button className="w-full gap-2" type="submit" disabled={loading}>
+            <Button
+              className="w-full gap-2"
+              type="submit"
+              disabled={loading || !detectedRole}
+            >
               {loading ? "Signing in..." : "Sign In"}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -168,7 +161,10 @@ export default function LoginForm() {
           <div className="pt-4 text-center text-sm text-muted-foreground space-y-1">
             <p>
               Forgot password?{" "}
-              <Link to="/forgot-password" className="text-primary hover:underline">
+              <Link
+                to="/forgot-password"
+                className="text-primary hover:underline"
+              >
                 Reset here
               </Link>
             </p>
