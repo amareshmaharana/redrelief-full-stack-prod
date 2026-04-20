@@ -96,93 +96,37 @@ function hasOtpTarget(body: { email?: string | null; mobile?: string | null }) {
 async function findUserByIdentifier(params: {
   email?: string;
   mobile?: string;
-  role?: Role;
 }) {
   await connectMongo();
 
   let user: RoleUser | null = null;
+  if (params.email) {
+    const normalizedEmail = params.email.toLowerCase();
+    user =
+      (await DonorUserModel.findOne({ email: normalizedEmail }).lean()) ||
+      (await RecipientUserModel.findOne({ email: normalizedEmail }).lean()) ||
+      (await HospitalUserModel.findOne({ email: normalizedEmail }).lean()) ||
+      (await ClinicUserModel.findOne({ email: normalizedEmail }).lean()) ||
+      (await AdminUserModel.findOne({ email: normalizedEmail }).lean()) ||
+      (await UserModel.findOne({ email: normalizedEmail }).lean());
+  } else if (params.mobile) {
+    user =
+      (await DonorUserModel.findOne({ phone: params.mobile }).lean()) ||
+      (await RecipientUserModel.findOne({ phone: params.mobile }).lean()) ||
+      (await HospitalUserModel.findOne({ phone: params.mobile }).lean()) ||
+      (await ClinicUserModel.findOne({ phone: params.mobile }).lean()) ||
+      (await AdminUserModel.findOne({ phone: params.mobile }).lean());
 
-  if (params.role) {
-    const Model = getModelForRole(params.role);
-    if (params.email) {
-      user =
-        (await Model.findOne({ email: params.email.toLowerCase() }).lean()) ||
-        (await UserModel.findOne({
-          email: params.email.toLowerCase(),
-          role: params.role,
-        }).lean());
-    } else if (params.mobile) {
-      user = await Model.findOne({ phone: params.mobile }).lean();
-      if (!user) {
-        const profile = await ProfileModel.findOne({
-          phone: params.mobile,
-        }).lean();
-        if (profile) {
-          user = await UserModel.findOne({
-            id: profile.userId,
-            role: params.role,
-          }).lean();
-        }
-      }
-    }
-  } else {
-    // Search across all role models (for login without role specification)
-    if (params.email) {
-      user =
-        (await DonorUserModel.findOne({
-          email: params.email.toLowerCase(),
-        }).lean()) ||
-        (await RecipientUserModel.findOne({
-          email: params.email.toLowerCase(),
-        }).lean()) ||
-        (await HospitalUserModel.findOne({
-          email: params.email.toLowerCase(),
-        }).lean()) ||
-        (await ClinicUserModel.findOne({
-          email: params.email.toLowerCase(),
-        }).lean()) ||
-        (await AdminUserModel.findOne({
-          email: params.email.toLowerCase(),
-        }).lean()) ||
-        (await UserModel.findOne({ email: params.email.toLowerCase() }).lean());
-    } else if (params.mobile) {
-      user =
-        (await DonorUserModel.findOne({ phone: params.mobile }).lean()) ||
-        (await RecipientUserModel.findOne({ phone: params.mobile }).lean()) ||
-        (await HospitalUserModel.findOne({ phone: params.mobile }).lean()) ||
-        (await ClinicUserModel.findOne({ phone: params.mobile }).lean()) ||
-        (await AdminUserModel.findOne({ phone: params.mobile }).lean());
-
-      if (!user) {
-        const profile = await ProfileModel.findOne({
-          phone: params.mobile,
-        }).lean();
-        if (profile) {
-          user = await UserModel.findOne({ id: profile.userId }).lean();
-        }
+    if (!user) {
+      const profile = await ProfileModel.findOne({ phone: params.mobile }).lean();
+      if (profile) {
+        user = await UserModel.findOne({ id: profile.userId }).lean();
       }
     }
   }
 
   if (!user) {
     return null;
-  }
-
-  if (
-    !("role" in (user as Record<string, unknown>)) ||
-    !(user as { role?: string }).role
-  ) {
-    if (params.role) {
-      user = {
-        ...(user as Record<string, unknown>),
-        role: params.role,
-      } as RoleUser;
-    } else {
-      user = {
-        ...(user as Record<string, unknown>),
-        role: getDefaultRoleForUser(user),
-      } as RoleUser;
-    }
   }
 
   const profile = await ProfileModel.findOne({ userId: user.id }).lean();
@@ -267,10 +211,7 @@ async function assertRegistrationTargetAvailable(params: {
 }
 
 async function issueSession(user: RoleUser) {
-  const access = signAccessToken(
-    user.id,
-    (user as any).role || getDefaultRoleForUser(user),
-  );
+  const access = signAccessToken(user.id, user.role);
   const refresh = signRefreshToken(user.id);
 
   await RefreshTokenModel.create({
@@ -289,19 +230,6 @@ async function issueSession(user: RoleUser) {
     },
     user: mapUserForSession(user as any, profile),
   };
-}
-
-function getDefaultRoleForUser(user: RoleUser): Role {
-  const candidate = user as Record<string, unknown>;
-  if (typeof candidate.role === "string") {
-    return candidate.role as Role;
-  }
-  if ("hospitalName" in candidate) return "hospital";
-  if ("clinicName" in candidate) return "clinic";
-  if ("medicalCondition" in candidate) return "recipient";
-  if ("permissions" in candidate) return "admin";
-  if ("bloodGroup" in candidate) return "donor";
-  return "donor"; // fallback
 }
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -445,28 +373,22 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   await connectMongo();
 
   const payload = loginSchema.parse(req.body);
+  const normalizedEmail = payload.email.toLowerCase();
 
   const identity = await findUserByIdentifier({
-    email: payload.email,
-    mobile: payload.mobile,
-    role: payload.role,
+    email: normalizedEmail,
   });
 
   if (!identity) {
     throw new AppError(401, "Invalid credentials.");
   }
 
-  const effectiveRole = payload.role ?? getDefaultRoleForUser(identity.user);
-
-  if (requiresPassword(effectiveRole)) {
+  if (requiresPassword(identity.user.role)) {
     if (!payload.password || !identity.user.password) {
       throw new AppError(401, "Invalid credentials.");
     }
 
-    const matches = await comparePassword(
-      payload.password,
-      identity.user.password,
-    );
+    const matches = await comparePassword(payload.password, identity.user.password);
     if (!matches) {
       throw new AppError(401, "Invalid credentials.");
     }
@@ -475,6 +397,35 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const session = await issueSession(identity.user);
 
   res.json(ok(session, "Login successful."));
+});
+
+export const checkEmailRole = asyncHandler(async (req: Request, res: Response) => {
+  await connectMongo();
+
+  const { email } = req.body as { email?: string };
+
+  if (!email || !email.trim()) {
+    throw new AppError(400, "Email is required.");
+  }
+
+  const identity = await findUserByIdentifier({
+    email: email.toLowerCase(),
+  });
+
+  if (!identity) {
+    res.status(404).json(ok({}, "User not found."));
+    return;
+  }
+
+  res.json(
+    ok(
+      {
+        role: identity.user.role,
+        requiresPassword: requiresPassword(identity.user.role),
+      },
+      "Role found.",
+    ),
+  );
 });
 
 export const sendOtpCode = asyncHandler(async (req: Request, res: Response) => {
@@ -594,7 +545,7 @@ export const forgotPasswordSendOtp = asyncHandler(
       purpose: "password_reset",
       targetEmail: payload.email.toLowerCase(),
       targetPhone: null,
-      role: getDefaultRoleForUser(identity.user),
+      role: identity.user.role,
       payloadJson: { userId: identity.user.id },
       expiresAt,
       consumedAt: null,
@@ -636,7 +587,7 @@ export const forgotPasswordReset = asyncHandler(
     }
 
     const newHash = await hashPassword(payload.new_password);
-    const role = getDefaultRoleForUser(identity.user);
+    const role = identity.user.role;
     const Model = getModelForRole(role);
 
     await Promise.all([
@@ -681,7 +632,7 @@ export const refreshToken = asyncHandler(
       throw new AppError(401, "Invalid refresh token.");
     }
 
-    const access = signAccessToken(user.id, getDefaultRoleForUser(user));
+    const access = signAccessToken(user.id, user.role);
 
     res.json(ok({ access }, "Token refreshed."));
   },
