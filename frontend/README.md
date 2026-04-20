@@ -24,7 +24,8 @@ The frontend is implemented as a complete multi-role web application with:
 
 - Public experience: landing, camps, camp details, stock visibility, contact, legal pages 🌐
 - Auth flows: login, register, forgot password/reset, OTP verify route (available) 🔐
-- Role dashboards with dedicated pages and navigation 📊
+- Login role is detected from the database record; donor/recipient can log in with email only, while admin/hospital/clinic require password
+- Role dashboards with dedicated pages, navigation, and role-themed button/hover colors 📊
 - Admin controls for users, camps, blood stock, requests, profile 🛠️
 - Real-time notification channel using Socket.IO 🔔
 - Resilient API error handling with clear backend connectivity messages 🧯
@@ -138,6 +139,7 @@ Routing is centralized in `src/App.tsx`.
 - `/login/form`
 - `/register`
 - `/register/form`
+- `/register/form?role=recipient` (role-specific public entry supported in the chooser flow)
 - `/verify-otp`
 - `/forgot-password`
 - `/reset-password`
@@ -167,6 +169,12 @@ Request behavior in `src/lib/api-client.ts`:
 - Clears invalid sessions on refresh failure
 - Surfaces explicit network message when backend is offline
 
+Login UX notes:
+
+- `src/pages/auth/LoginForm.tsx` calls the backend role lookup endpoint before submit feedback is shown.
+- The form shows `Login with <role>` after a valid email matches a stored user.
+- The password label becomes required automatically for `admin`, `hospital`, and `clinic` accounts.
+
 ## API Layer 🔌
 
 Domain APIs are centralized in `src/lib/backend-api.ts`:
@@ -180,6 +188,10 @@ Domain APIs are centralized in `src/lib/backend-api.ts`:
 - `clinicApi`
 - `profileApi`
 - `publicApi`
+
+`authApi` includes role lookup support used by the login form:
+
+- `checkEmailRole(email)`
 
 This keeps view components focused on UI and state, not endpoint wiring.
 
