@@ -350,7 +350,7 @@ export function DashboardLayout({
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-muted/30">
+    <div className={`role-theme-${role} flex h-screen overflow-hidden bg-muted/30`}>
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
