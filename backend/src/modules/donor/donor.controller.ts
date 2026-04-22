@@ -1,9 +1,17 @@
 import type { Request, Response } from "express";
+import type { Role } from "../../models/domain";
 import { CampModel } from "../../models/camp";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/api-response";
 import { AppError } from "../../utils/app-error";
 import { createDonationRequest, listDonationRequestsForUser } from "../request/request.service";
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
 
 export const donorCamps = asyncHandler(async (_req: Request, res: Response) => {
   const camps = await CampModel.find().sort({ date: 1 }).lean();
@@ -20,7 +28,7 @@ export const donorCamps = asyncHandler(async (_req: Request, res: Response) => {
   );
 });
 
-export const donorRequestStatus = asyncHandler(async (req: Request, res: Response) => {
+export const donorRequestStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -29,7 +37,7 @@ export const donorRequestStatus = asyncHandler(async (req: Request, res: Respons
   res.json(ok(rows));
 });
 
-export const donorCreateRequest = asyncHandler(async (req: Request, res: Response) => {
+export const donorCreateRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
