@@ -1,15 +1,23 @@
 import type { Request, Response } from "express";
+import type { Role } from "../../models/domain";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/api-response";
 import { AppError } from "../../utils/app-error";
 import { createBloodRequest, listBloodRequestsForUser } from "../request/request.service";
 import { listStock } from "../bloodStock/blood-stock.service";
 
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
+
 export const recipientStock = asyncHandler(async (_req: Request, res: Response) => {
   res.json(ok(await listStock()));
 });
 
-export const recipientRequestStatus = asyncHandler(async (req: Request, res: Response) => {
+export const recipientRequestStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -17,7 +25,7 @@ export const recipientRequestStatus = asyncHandler(async (req: Request, res: Res
   res.json(ok(await listBloodRequestsForUser(userId, "recipient")));
 });
 
-export const recipientCreateRequest = asyncHandler(async (req: Request, res: Response) => {
+export const recipientCreateRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   const role = req.user?.role;
   if (!userId || !role) {
