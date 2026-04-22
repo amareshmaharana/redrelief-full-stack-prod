@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthSession } from '@/lib/auth-session';
 import { donorApi, mapCamp } from '@/lib/backend-api';
-import { formatCampDisplayId, getCampRegistrationCount, isCampRegistered, registerCampLocally, useCampRegistrySubscription } from '@/lib/camp-registry';
+import { formatCampDisplayId, getCampRegistrationCount, isCampRegistered, registerCampLocally, subscribeCampRegistry } from '@/lib/camp-registry';
 import type { BloodCamp } from '@/types';
 
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -54,11 +54,12 @@ export default function DonorCamps() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = useCampRegistrySubscription(() => setRegistryVersion((current) => current + 1));
+    const unsubscribe = subscribeCampRegistry(() => setRegistryVersion((current) => current + 1));
     return unsubscribe;
   }, []);
 
   const liveCamps = useMemo(() => {
+    void registryVersion;
     return camps
       .filter((camp) => camp.status === 'upcoming' || camp.status === 'ongoing')
       .map((camp) => ({
