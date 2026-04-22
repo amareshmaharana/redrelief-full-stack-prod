@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatCampLocation } from '@/lib/camp-location';
 import { publicApi, mapCamp, type StockSummaryDTO } from '@/lib/backend-api';
-import { formatCampDisplayId, getCampRegistrationCount, useCampRegistrySubscription } from '@/lib/camp-registry';
+import { formatCampDisplayId, getCampRegistrationCount, subscribeCampRegistry } from '@/lib/camp-registry';
 import type { BloodCamp } from '@/types';
 
 const statusStyles: Record<string, string> = {
@@ -46,7 +46,7 @@ export default function CampSchedule() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = useCampRegistrySubscription(() => setRegistryVersion((current) => current + 1));
+    const unsubscribe = subscribeCampRegistry(() => setRegistryVersion((current) => current + 1));
     return unsubscribe;
   }, []);
 
