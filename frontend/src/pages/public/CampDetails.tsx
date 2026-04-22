@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { publicApi, mapCamp } from "@/lib/backend-api";
 import { formatCampLocation } from "@/lib/camp-location";
-import { formatCampDisplayId, getCampRegistrationCount, getCampRegistrationRecord, isCampRegistered, registerCampLocally, useCampRegistrySubscription } from "@/lib/camp-registry";
+import { formatCampDisplayId, getCampRegistrationCount, getCampRegistrationRecord, isCampRegistered, registerCampLocally, subscribeCampRegistry } from "@/lib/camp-registry";
 import { useAuthSession } from "@/lib/auth-session";
 import type { BloodCamp } from "@/types";
 
@@ -54,11 +54,14 @@ export default function CampDetails() {
   }, [campId]);
 
   useEffect(() => {
-    const unsubscribe = useCampRegistrySubscription(() => setVersion((current) => current + 1));
+    const unsubscribe = subscribeCampRegistry(() => setVersion((current) => current + 1));
     return unsubscribe;
   }, []);
 
-  const registrationCount = useMemo(() => (camp ? getCampRegistrationCount(camp.id) : 0), [camp, version]);
+  const registrationCount = useMemo(() => {
+    void version;
+    return camp ? getCampRegistrationCount(camp.id) : 0;
+  }, [camp, version]);
   const registered = camp ? isCampRegistered(camp.id) : false;
   const registrationRecord = camp ? getCampRegistrationRecord(camp.id) : null;
   const baseRegistered = camp?.registeredDonors ?? 0;
