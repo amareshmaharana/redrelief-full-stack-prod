@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import type { Role } from "../../models/domain";
 import { UserModel } from "../../models/user";
 import { ProfileModel } from "../../models/profile";
 import { getNextSequence } from "../../models/counter";
@@ -13,6 +14,13 @@ import { ok } from "../../utils/api-response";
 import { AppError } from "../../utils/app-error";
 import { mapProfile } from "../../utils/serializers";
 import { comparePassword, hashPassword } from "../../utils/password";
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
 
 async function findUserById(userId: number) {
   return (
@@ -63,7 +71,7 @@ const changePasswordSchema = z.object({
   new_password: z.string().min(8),
 });
 
-export const getProfile = asyncHandler(async (req: Request, res: Response) => {
+export const getProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -79,7 +87,7 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
   res.json(ok(mapProfile(user, profile)));
 });
 
-export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+export const updateProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -143,7 +151,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   res.json(ok(mapProfile(updated, profile), "Profile updated."));
 });
 
-export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+export const changePassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
