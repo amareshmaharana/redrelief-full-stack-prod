@@ -72,7 +72,7 @@ export function registerCampLocally(record: Omit<CampRegistrationRecord, "regist
   return nextRecord;
 }
 
-export function useCampRegistrySubscription(onChange: () => void) {
+export function subscribeCampRegistry(onChange: () => void) {
   const handler = () => onChange();
 
   window.addEventListener(CAMP_REGISTRY_EVENT, handler);
