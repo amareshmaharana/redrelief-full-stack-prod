@@ -1,11 +1,19 @@
 import type { Request, Response } from "express";
+import type { Role } from "../../models/domain";
 import { NotificationModel } from "../../models/notification";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/api-response";
 import { AppError } from "../../utils/app-error";
 import { mapNotification } from "../../utils/serializers";
 
-export const listNotifications = asyncHandler(async (req: Request, res: Response) => {
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
+
+export const listNotifications = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -16,7 +24,7 @@ export const listNotifications = asyncHandler(async (req: Request, res: Response
   res.json(ok(list.map(mapNotification)));
 });
 
-export const markRead = asyncHandler(async (req: Request, res: Response) => {
+export const markRead = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
