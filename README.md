@@ -7,7 +7,7 @@
 [![Issues](https://img.shields.io/github/issues/OWNER/REPO)](https://github.com/OWNER/REPO/issues)
 [![License](https://img.shields.io/github/license/OWNER/REPO)](LICENSE)
 
-![Demo](https://img.shields.io/badge/Demo-Live%20Link-ff4d4f?style=for-the-badge)
+[![Demo](https://img.shields.io/badge/Demo-Live%20Link-ff4d4f?style=for-the-badge)](https://redrelief.vercel.app/)
 ![API](https://img.shields.io/badge/API-REST-0ea5e9?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-22c55e?style=for-the-badge)
 
