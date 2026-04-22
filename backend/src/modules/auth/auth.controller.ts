@@ -66,7 +66,7 @@ function getModelForRole(role: Role) {
   }
 }
 
-function getRegistrationModelForRole(role: Role) {
+function getRegistrationModelForRole(role: Role): typeof DonorUserModel | typeof RecipientUserModel | typeof HospitalUserModel | typeof ClinicUserModel | typeof AdminUserModel | typeof UserModel {
   switch (role) {
     case "donor":
       return DonorUserModel;
@@ -312,7 +312,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     userData.permissions = [];
   }
 
-  let user: Awaited<ReturnType<typeof Model.create>>;
+  let user: any;
   try {
     user = await Model.create(userData);
   } catch (error) {
@@ -362,7 +362,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  const session = await issueSession(user.toObject());
+  const session = await issueSession((user as any).toObject());
 
   res.status(201).json(
     ok(session, "Registration successful."),
