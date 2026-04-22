@@ -19,6 +19,13 @@ import { addStock, listStock } from "../bloodStock/blood-stock.service";
 import { listRequestsForAdmin, reviewRequest } from "../request/request.service";
 import type { RequestStatus, RequestType, Role } from "../../models/domain";
 
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
+
 async function findUserById(userId: number) {
   return (
     (await DonorUserModel.findOne({ id: userId }).lean()) ||
@@ -255,7 +262,7 @@ export const adminStock = asyncHandler(async (_req: Request, res: Response) => {
   res.json(ok(await listStock()));
 });
 
-export const adminAddStock = asyncHandler(async (req: Request, res: Response) => {
+export const adminAddStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const payload = z
     .object({
       blood_group: z.string().min(2),
