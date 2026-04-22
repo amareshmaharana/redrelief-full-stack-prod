@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Calendar, FileText, Heart, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ export default function DonorRequestDonation() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [campData, requestData] = await Promise.all([
@@ -47,11 +47,11 @@ export default function DonorRequestDonation() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchParams]);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
