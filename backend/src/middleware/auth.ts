@@ -3,7 +3,14 @@ import type { Role } from "../models/domain";
 import { verifyAccessToken } from "../utils/jwt";
 import { AppError } from "../utils/app-error";
 
-export function verifyToken(req: Request, _res: Response, next: NextFunction) {
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
+
+export function verifyToken(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
   const authorization = req.headers.authorization;
   if (!authorization || !authorization.startsWith("Bearer ")) {
     return next(new AppError(401, "Authentication required."));
@@ -21,7 +28,7 @@ export function verifyToken(req: Request, _res: Response, next: NextFunction) {
 }
 
 export function authorizeRoles(...roles: Role[]) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new AppError(401, "Authentication required."));
     }
