@@ -1,11 +1,19 @@
 import type { Request, Response } from "express";
+import type { Role } from "../../models/domain";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/api-response";
 import { AppError } from "../../utils/app-error";
 import { createBloodRequest, listBloodRequestsForUser } from "../request/request.service";
 import { addStock, deleteStock, listStock, updateStock } from "../bloodStock/blood-stock.service";
 
-export const hospitalStock = asyncHandler(async (req: Request, res: Response) => {
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    role: Role;
+  };
+};
+
+export const hospitalStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -13,7 +21,7 @@ export const hospitalStock = asyncHandler(async (req: Request, res: Response) =>
   res.json(ok(await listStock(userId)));
 });
 
-export const hospitalRequestStatus = asyncHandler(async (req: Request, res: Response) => {
+export const hospitalRequestStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -21,7 +29,7 @@ export const hospitalRequestStatus = asyncHandler(async (req: Request, res: Resp
   res.json(ok(await listBloodRequestsForUser(userId, "hospital")));
 });
 
-export const hospitalCreateRequest = asyncHandler(async (req: Request, res: Response) => {
+export const hospitalCreateRequest = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   const role = req.user?.role;
   if (!userId || !role) {
@@ -37,7 +45,7 @@ export const hospitalCreateRequest = asyncHandler(async (req: Request, res: Resp
   res.status(201).json(ok(created, "Blood request submitted."));
 });
 
-export const hospitalAddStock = asyncHandler(async (req: Request, res: Response) => {
+export const hospitalAddStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -53,7 +61,7 @@ export const hospitalAddStock = asyncHandler(async (req: Request, res: Response)
   res.status(201).json(ok(created, "Stock added."));
 });
 
-export const hospitalUpdateStock = asyncHandler(async (req: Request, res: Response) => {
+export const hospitalUpdateStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
@@ -70,7 +78,7 @@ export const hospitalUpdateStock = asyncHandler(async (req: Request, res: Respon
   res.json(ok(updated, "Stock updated."));
 });
 
-export const hospitalDeleteStock = asyncHandler(async (req: Request, res: Response) => {
+export const hospitalDeleteStock = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     throw new AppError(401, "Authentication required.");
