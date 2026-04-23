@@ -1,5 +1,5 @@
 import type { BloodGroup, BloodStock, UserRole } from "@/types";
-import { apiRequest, extractList, getApiBaseUrl } from "@/lib/api-client";
+import { apiRequest, extractList, getSocketBaseUrl } from "@/lib/api-client";
 import type { BackendUser } from "@/lib/auth-session";
 
 export interface NotificationDTO {
@@ -190,7 +190,7 @@ export const notificationApi = {
       body: JSON.stringify({ mark_all: true }),
     }),
   socketBaseUrl: () => {
-    return getApiBaseUrl();
+    return getSocketBaseUrl();
   },
 };
 
