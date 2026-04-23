@@ -24,7 +24,17 @@ function buildUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (
+    API_BASE_URL.endsWith("/api") &&
+    (normalizedPath === "/api" || normalizedPath.startsWith("/api/"))
+  ) {
+    return `${API_BASE_URL}${normalizedPath.slice(4) || "/"}`;
+  }
+
+  return `${API_BASE_URL}${normalizedPath}`;
 }
 
 function toNetworkErrorMessage(path: string) {
