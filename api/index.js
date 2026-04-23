@@ -4,9 +4,14 @@ const { connectMongo } = require('../backend/dist/config/mongodb');
 let isConnected = false;
 
 module.exports = async function handler(req, res) {
+  const requestOrigin = req.headers.origin;
+
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (requestOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader(
     'Access-Control-Allow-Methods',
     'GET,OPTIONS,PATCH,DELETE,POST,PUT'
@@ -19,6 +24,11 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  // In some Vercel route resolutions, req.url can be "/register" for /api/register.
+  if (typeof req.url === 'string' && !req.url.startsWith('/api')) {
+    req.url = `/api${req.url.startsWith('/') ? req.url : `/${req.url}`}`;
   }
 
   // Ensure MongoDB connection is established
@@ -44,7 +54,7 @@ module.exports = async function handler(req, res) {
       else resolve();
     });
   }).catch((error) => {
-    console.error('Request error:', error);
+    console.error('Request error:', req.method, req.url, error);
     if (!res.writableEnded) {
       res.status(500).json({
         success: false,
