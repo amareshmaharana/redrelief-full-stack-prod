@@ -31,6 +31,11 @@ module.exports = async function handler(req, res) {
     req.url = `/api${req.url.startsWith('/') ? req.url : `/${req.url}`}`;
   }
 
+  if (req.method === 'GET' && req.url === '/api/health') {
+    res.status(200).json({ success: true, source: 'vercel-function' });
+    return;
+  }
+
   // Ensure MongoDB connection is established
   if (!isConnected) {
     try {
