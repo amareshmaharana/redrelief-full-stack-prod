@@ -5,11 +5,14 @@ import {
   clearAuthSession,
 } from "@/lib/auth-session";
 
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000' 
-    : '/api');
+  import.meta.env.DEV
+    ? configuredApiBaseUrl || "http://localhost:5000"
+    : configuredApiBaseUrl && !configuredApiBaseUrl.includes("localhost")
+      ? configuredApiBaseUrl
+      : "/api";
 
 interface ApiEnvelope {
   success?: boolean;
