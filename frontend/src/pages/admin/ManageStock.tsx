@@ -37,7 +37,7 @@ export default function ManageStock() {
     void loadStock(true);
     const intervalId = window.setInterval(() => {
       void loadStock(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
