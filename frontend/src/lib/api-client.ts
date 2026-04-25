@@ -160,6 +160,9 @@ export async function apiRequest<T>(
             ? (JSON.parse(retryText) as unknown)
             : null;
           if (!retryResp.ok) {
+            if (retryResp.status === 401) {
+              clearAuthSession();
+            }
             throw new Error(extractErrorMessage(retryData));
           }
           return unwrapEnvelope(retryData) as T;
@@ -175,6 +178,9 @@ export async function apiRequest<T>(
   const data = text ? (JSON.parse(text) as unknown) : null;
 
   if (!response.ok) {
+    if (response.status === 401 && options.auth !== false) {
+      clearAuthSession();
+    }
     throw new Error(extractErrorMessage(data));
   }
 
