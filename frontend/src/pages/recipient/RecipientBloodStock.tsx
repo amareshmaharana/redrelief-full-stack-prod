@@ -25,7 +25,7 @@ export default function RecipientBloodStock() {
     void loadStock();
     const intervalId = window.setInterval(() => {
       void loadStock();
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
