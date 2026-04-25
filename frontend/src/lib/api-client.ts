@@ -5,20 +5,8 @@ import {
   clearAuthSession,
 } from "@/lib/auth-session";
 
-const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-
-const API_PREFIX = "/api";
-
 const API_BASE_URL =
-  import.meta.env.DEV
-    ? configuredApiBaseUrl || `http://localhost:5000${API_PREFIX}`
-    : configuredApiBaseUrl && !configuredApiBaseUrl.includes("localhost")
-      ? configuredApiBaseUrl
-      : API_PREFIX;
-
-const SOCKET_BASE_URL = API_BASE_URL.endsWith(API_PREFIX)
-  ? API_BASE_URL.slice(0, -API_PREFIX.length) || "/"
-  : API_BASE_URL;
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
 
 interface ApiEnvelope {
   success?: boolean;
@@ -30,10 +18,7 @@ function buildUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-
-  return `${API_BASE_URL}${normalizedPath}`;
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 function toNetworkErrorMessage(path: string) {
@@ -138,7 +123,7 @@ export async function apiRequest<T>(
     const session = getAuthSession();
     if (session?.refresh) {
       try {
-        const refreshResp = await fetch(buildUrl("/refresh-token"), {
+        const refreshResp = await fetch(buildUrl("/api/refresh-token"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: session.refresh }),
@@ -206,17 +191,5 @@ export function extractList<T>(payload: unknown): T[] {
 }
 
 export function getApiBaseUrl() {
-  return API_BASE_URL;
-}
-
-export function getSocketBaseUrl() {
-  if (SOCKET_BASE_URL === "/") {
-    return typeof window !== "undefined" ? window.location.origin : "/";
-  }
-
-  return SOCKET_BASE_URL;
-}
-
-export function getHttpApiBaseUrl() {
   return API_BASE_URL;
 }
