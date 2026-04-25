@@ -40,7 +40,7 @@ export default function ClinicRequestBlood() {
     void loadRequests();
     const intervalId = window.setInterval(() => {
       void loadRequests();
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
