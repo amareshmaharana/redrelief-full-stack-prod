@@ -33,7 +33,7 @@ export default function ManageDonors() {
     void loadDonors(true);
     const intervalId = window.setInterval(() => {
       void loadDonors(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
