@@ -33,7 +33,7 @@ export default function ManageHospitals() {
     void loadHospitals(true);
     const intervalId = window.setInterval(() => {
       void loadHospitals(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
