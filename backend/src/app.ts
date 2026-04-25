@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { env } from "./config/env";
+import { isAllowedOrigin } from "./config/cors";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { profileRoutes } from "./modules/profile/profile.routes";
 import { notificationRoutes } from "./modules/notification/notification.routes";
@@ -17,7 +17,14 @@ export const app = express();
 
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
