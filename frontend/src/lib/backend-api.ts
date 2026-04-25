@@ -314,6 +314,10 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify({ is_verified: isVerified }),
     }),
+  deleteUser: (userId: number) =>
+    apiRequest<{ message: string }>(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+    }),
   camps: async () => {
     const response = await apiRequest<unknown>("/api/admin/camps");
     return extractList<CampDTO>(response);
