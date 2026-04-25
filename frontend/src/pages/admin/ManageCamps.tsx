@@ -36,7 +36,7 @@ export default function ManageCamps() {
     void loadCamps(true);
     const intervalId = window.setInterval(() => {
       void loadCamps(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
