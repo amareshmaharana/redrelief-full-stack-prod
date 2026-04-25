@@ -10,6 +10,7 @@ import { RecipientUserModel } from "../../models/recipient-user";
 import { HospitalUserModel } from "../../models/hospital-user";
 import { ClinicUserModel } from "../../models/clinic-user";
 import { AdminUserModel } from "../../models/admin-user";
+import { RefreshTokenModel } from "../../models/refresh-token";
 import { getNextSequence } from "../../models/counter";
 import { asyncHandler } from "../../utils/async-handler";
 import { ok } from "../../utils/api-response";
@@ -34,6 +35,19 @@ async function findUserById(userId: number) {
     (await ClinicUserModel.findOne({ id: userId }).lean()) ||
     (await AdminUserModel.findOne({ id: userId }).lean())
   );
+}
+
+async function deleteUserFromRoleCollections(userId: number) {
+  const models = [DonorUserModel, RecipientUserModel, HospitalUserModel, ClinicUserModel, AdminUserModel];
+
+  for (const model of models) {
+    const result = await model.deleteOne({ id: userId });
+    if ((result.deletedCount ?? 0) > 0) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function getAllUsers() {
@@ -117,6 +131,29 @@ export const adminUpdateUserVerification = asyncHandler(async (req: Request, res
   await Promise.all(models.map(model => model.updateOne({ id: userId }, { $set: { isVerified: payload.is_verified } }).catch(() => {})));
 
   res.json(ok({}, payload.is_verified ? "User verified." : "User marked as pending verification."));
+});
+
+export const adminDeleteUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    throw new AppError(400, "Invalid user id.");
+  }
+
+  if (req.user?.id === userId) {
+    throw new AppError(400, "You cannot delete your own admin account.");
+  }
+
+  const deleted = await deleteUserFromRoleCollections(userId);
+  if (!deleted) {
+    throw new AppError(404, "User not found.");
+  }
+
+  await Promise.all([
+    ProfileModel.deleteOne({ userId }),
+    RefreshTokenModel.deleteMany({ userId }),
+  ]);
+
+  res.json(ok({}, "User deleted."));
 });
 
 export const adminCamps = asyncHandler(async (_req: Request, res: Response) => {
