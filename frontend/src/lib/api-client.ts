@@ -8,6 +8,10 @@ import {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
 
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
 interface ApiEnvelope {
   success?: boolean;
   data?: unknown;
@@ -18,7 +22,8 @@ function buildUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
-  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const baseUrl = normalizeBaseUrl(API_BASE_URL);
+  return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 function toNetworkErrorMessage(path: string) {
