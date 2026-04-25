@@ -45,7 +45,7 @@ export default function BloodStocks() {
     void loadStockSummary(true);
     const intervalId = window.setInterval(() => {
       void loadStockSummary(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
