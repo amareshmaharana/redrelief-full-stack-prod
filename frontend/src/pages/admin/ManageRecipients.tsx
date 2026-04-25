@@ -34,7 +34,7 @@ export default function ManageRecipients() {
     void loadRecipients(true);
     const intervalId = window.setInterval(() => {
       void loadRecipients(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
