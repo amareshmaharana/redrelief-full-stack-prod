@@ -33,7 +33,7 @@ export default function ManageClinics() {
     void loadClinics(true);
     const intervalId = window.setInterval(() => {
       void loadClinics(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
