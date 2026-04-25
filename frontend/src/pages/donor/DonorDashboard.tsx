@@ -48,7 +48,7 @@ export default function DonorDashboard() {
     void loadDashboard(true);
     const intervalId = window.setInterval(() => {
       void loadDashboard(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
