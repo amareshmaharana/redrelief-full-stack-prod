@@ -5,6 +5,7 @@ import {
   adminCamps,
   adminCreateCamp,
   adminDeleteCamp,
+  adminDeleteUser,
   adminDeleteStock,
   adminRequests,
   adminStock,
@@ -24,6 +25,7 @@ export const adminRoutes = Router();
 adminRoutes.use(verifyToken, authorizeRoles("admin"));
 adminRoutes.get("/users", adminUsers);
 adminRoutes.patch("/users/:userId/verification", adminUpdateUserVerification);
+adminRoutes.delete("/users/:userId", adminDeleteUser);
 adminRoutes.get("/camps", adminCamps);
 adminRoutes.post("/camps", adminCreateCamp);
 adminRoutes.patch("/camps/:campId", adminUpdateCamp);
