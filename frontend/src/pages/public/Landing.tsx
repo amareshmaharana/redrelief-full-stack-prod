@@ -163,7 +163,7 @@ export default function Landing() {
     void loadStockSummary();
     const intervalId = window.setInterval(() => {
       void loadStockSummary();
-    }, 30000);
+    }, 90000);
 
     publicApi
       .camps()
