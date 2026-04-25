@@ -29,7 +29,7 @@ export default function ManageRequests() {
     fetchRequests();
     const intervalId = window.setInterval(() => {
       fetchRequests();
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
