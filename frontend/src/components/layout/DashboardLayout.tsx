@@ -68,6 +68,8 @@ export function DashboardLayout({
   useEffect(() => {
     let disposed = false;
     let retryTimer: ReturnType<typeof setInterval> | null = null;
+    let retryAttempts = 0;
+    const MAX_RETRY_ATTEMPTS = 6;
 
     const clearRetryTimer = () => {
       if (retryTimer) {
@@ -92,6 +94,7 @@ export function DashboardLayout({
             createdAt: item.created_at,
           })),
         );
+        retryAttempts = 0;
         clearRetryTimer();
       } catch (error) {
         const message =
@@ -99,10 +102,19 @@ export function DashboardLayout({
             ? error.message
             : "Failed to load notifications.";
         if (isBackendConnectionError(message)) {
-          if (!retryTimer) {
+          if (
+            !retryTimer &&
+            retryAttempts < MAX_RETRY_ATTEMPTS &&
+            document.visibilityState === "visible"
+          ) {
             retryTimer = setInterval(() => {
+              retryAttempts += 1;
+              if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+                clearRetryTimer();
+                return;
+              }
               void loadNotifications();
-            }, 10000);
+            }, 30000);
           }
           return;
         }
