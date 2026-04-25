@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     void load(true);
     const intervalId = window.setInterval(() => {
       void load(false);
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
