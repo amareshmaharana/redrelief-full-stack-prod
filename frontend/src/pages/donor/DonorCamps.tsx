@@ -46,7 +46,7 @@ export default function DonorCamps() {
     void loadCamps();
     const intervalId = window.setInterval(() => {
       void loadCamps();
-    }, 30000);
+    }, 90000);
 
     return () => {
       window.clearInterval(intervalId);
