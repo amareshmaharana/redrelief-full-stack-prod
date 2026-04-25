@@ -1,5 +1,5 @@
 import type { BloodGroup, BloodStock, UserRole } from "@/types";
-import { apiRequest, extractList, getSocketBaseUrl } from "@/lib/api-client";
+import { apiRequest, extractList, getApiBaseUrl } from "@/lib/api-client";
 import type { BackendUser } from "@/lib/auth-session";
 
 export interface NotificationDTO {
@@ -96,7 +96,7 @@ export const authApi = {
       message: string;
       tokens: { access: string; refresh: string };
       user: BackendUser;
-    }>("/register", {
+    }>("/api/register", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
@@ -107,7 +107,7 @@ export const authApi = {
       message: string;
       tokens: { access: string; refresh: string };
       user: BackendUser;
-    }>("/login", {
+    }>("/api/login", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
@@ -115,7 +115,7 @@ export const authApi = {
 
   checkEmailRole: (email: string) =>
     apiRequest<{ role: string; requiresPassword: boolean }>(
-      "/check-email-role",
+      "/api/check-email-role",
       {
         method: "POST",
         auth: false,
@@ -130,7 +130,7 @@ export const authApi = {
     role?: string;
     registration_payload?: Record<string, unknown>;
   }) =>
-    apiRequest<{ message: string }>("/send-otp", {
+    apiRequest<{ message: string }>("/api/send-otp", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
@@ -146,28 +146,28 @@ export const authApi = {
       message: string;
       tokens?: { access: string; refresh: string };
       user?: BackendUser;
-    }>("/verify-otp", {
+    }>("/api/verify-otp", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
     }),
 
   forgotPasswordRequest: (email: string) =>
-    apiRequest<{ message: string }>("/forgot-password/request", {
+    apiRequest<{ message: string }>("/api/forgot-password/request", {
       method: "POST",
       auth: false,
       body: JSON.stringify({ email }),
     }),
 
   forgotPasswordReset: (payload: { token: string; new_password: string }) =>
-    apiRequest<{ message: string }>("/forgot-password/reset", {
+    apiRequest<{ message: string }>("/api/forgot-password/reset", {
       method: "POST",
       auth: false,
       body: JSON.stringify(payload),
     }),
 
   refreshToken: (refresh: string) =>
-    apiRequest<{ access: string }>("/refresh-token", {
+    apiRequest<{ access: string }>("/api/refresh-token", {
       method: "POST",
       auth: false,
       body: JSON.stringify({ refresh }),
@@ -176,35 +176,35 @@ export const authApi = {
 
 export const notificationApi = {
   list: async () => {
-    const response = await apiRequest<unknown>("/notifications");
+    const response = await apiRequest<unknown>("/api/notifications");
     return extractList<NotificationDTO>(response);
   },
   markRead: (notificationIds: number[]) =>
-    apiRequest<{ message: string }>("/notifications/mark-read", {
+    apiRequest<{ message: string }>("/api/notifications/mark-read", {
       method: "POST",
       body: JSON.stringify({ notification_ids: notificationIds }),
     }),
   markAllRead: () =>
-    apiRequest<{ message: string }>("/notifications/mark-read", {
+    apiRequest<{ message: string }>("/api/notifications/mark-read", {
       method: "POST",
       body: JSON.stringify({ mark_all: true }),
     }),
   socketBaseUrl: () => {
-    return getSocketBaseUrl();
+    return getApiBaseUrl();
   },
 };
 
 export const donorApi = {
   camps: async () => {
-    const response = await apiRequest<unknown>("/donor/camps");
+    const response = await apiRequest<unknown>("/api/donor/camps");
     return extractList<CampDTO>(response);
   },
   requests: async () => {
-    const response = await apiRequest<unknown>("/donor/request-status");
+    const response = await apiRequest<unknown>("/api/donor/request-status");
     return extractList<DonationRequestDTO>(response);
   },
   createRequest: (formData: FormData) =>
-    apiRequest<DonationRequestDTO>("/donor/donation-request", {
+    apiRequest<DonationRequestDTO>("/api/donor/donation-request", {
       method: "POST",
       body: formData,
     }),
@@ -212,15 +212,15 @@ export const donorApi = {
 
 export const recipientApi = {
   stock: async () => {
-    const response = await apiRequest<unknown>("/recipient/stock");
+    const response = await apiRequest<unknown>("/api/recipient/stock");
     return extractList<BloodStockDTO>(response);
   },
   requests: async () => {
-    const response = await apiRequest<unknown>("/recipient/request-status");
+    const response = await apiRequest<unknown>("/api/recipient/request-status");
     return extractList<BloodRequestDTO>(response);
   },
   createRequest: (formData: FormData) =>
-    apiRequest<BloodRequestDTO>("/recipient/blood-request", {
+    apiRequest<BloodRequestDTO>("/api/recipient/blood-request", {
       method: "POST",
       body: formData,
     }),
@@ -228,7 +228,7 @@ export const recipientApi = {
 
 export const hospitalApi = {
   stock: async () => {
-    const response = await apiRequest<unknown>("/hospital/stock");
+    const response = await apiRequest<unknown>("/api/hospital/stock");
     return extractList<BloodStockDTO>(response);
   },
   addStock: (payload: {
@@ -236,7 +236,7 @@ export const hospitalApi = {
     units: number;
     expiry_date: string;
   }) =>
-    apiRequest<BloodStockDTO>("/hospital/stock", {
+    apiRequest<BloodStockDTO>("/api/hospital/stock", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -244,20 +244,20 @@ export const hospitalApi = {
     stockId: number,
     payload: { blood_group?: string; units?: number; expiry_date?: string },
   ) =>
-    apiRequest<BloodStockDTO>(`/hospital/stock/${stockId}`, {
+    apiRequest<BloodStockDTO>(`/api/hospital/stock/${stockId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
   deleteStock: (stockId: number) =>
-    apiRequest<{ message: string }>(`/hospital/stock/${stockId}`, {
+    apiRequest<{ message: string }>(`/api/hospital/stock/${stockId}`, {
       method: "DELETE",
     }),
   requests: async () => {
-    const response = await apiRequest<unknown>("/hospital/request-status");
+    const response = await apiRequest<unknown>("/api/hospital/request-status");
     return extractList<BloodRequestDTO>(response);
   },
   createRequest: (formData: FormData) =>
-    apiRequest<BloodRequestDTO>("/hospital/blood-request", {
+    apiRequest<BloodRequestDTO>("/api/hospital/blood-request", {
       method: "POST",
       body: formData,
     }),
@@ -265,7 +265,7 @@ export const hospitalApi = {
 
 export const clinicApi = {
   stock: async () => {
-    const response = await apiRequest<unknown>("/clinic/stock");
+    const response = await apiRequest<unknown>("/api/clinic/stock");
     return extractList<BloodStockDTO>(response);
   },
   addStock: (payload: {
@@ -273,7 +273,7 @@ export const clinicApi = {
     units: number;
     expiry_date: string;
   }) =>
-    apiRequest<BloodStockDTO>("/clinic/stock", {
+    apiRequest<BloodStockDTO>("/api/clinic/stock", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -281,20 +281,20 @@ export const clinicApi = {
     stockId: number,
     payload: { blood_group?: string; units?: number; expiry_date?: string },
   ) =>
-    apiRequest<BloodStockDTO>(`/clinic/stock/${stockId}`, {
+    apiRequest<BloodStockDTO>(`/api/clinic/stock/${stockId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
   deleteStock: (stockId: number) =>
-    apiRequest<{ message: string }>(`/clinic/stock/${stockId}`, {
+    apiRequest<{ message: string }>(`/api/clinic/stock/${stockId}`, {
       method: "DELETE",
     }),
   requests: async () => {
-    const response = await apiRequest<unknown>("/clinic/request-status");
+    const response = await apiRequest<unknown>("/api/clinic/request-status");
     return extractList<BloodRequestDTO>(response);
   },
   createRequest: (formData: FormData) =>
-    apiRequest<BloodRequestDTO>("/clinic/blood-request", {
+    apiRequest<BloodRequestDTO>("/api/clinic/blood-request", {
       method: "POST",
       body: formData,
     }),
@@ -302,7 +302,7 @@ export const clinicApi = {
 
 export const adminApi = {
   users: async (role?: UserRole) => {
-    const response = await apiRequest<unknown>("/admin/users");
+    const response = await apiRequest<unknown>("/api/admin/users");
     const users = extractList<AdminUserDTO>(response);
     if (!role) {
       return users;
@@ -310,12 +310,12 @@ export const adminApi = {
     return users.filter((user) => user.role === role);
   },
   updateUserVerification: (userId: number, isVerified: boolean) =>
-    apiRequest<{ message: string }>(`/admin/users/${userId}/verification`, {
+    apiRequest<{ message: string }>(`/api/admin/users/${userId}/verification`, {
       method: "PATCH",
       body: JSON.stringify({ is_verified: isVerified }),
     }),
   camps: async () => {
-    const response = await apiRequest<unknown>("/admin/camps");
+    const response = await apiRequest<unknown>("/api/admin/camps");
     return extractList<CampDTO>(response);
   },
   createCamp: (payload: {
@@ -324,7 +324,7 @@ export const adminApi = {
     date: string;
     description: string;
   }) =>
-    apiRequest<CampDTO>("/admin/camps", {
+    apiRequest<CampDTO>("/api/admin/camps", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -337,26 +337,26 @@ export const adminApi = {
       description?: string;
     },
   ) =>
-    apiRequest<CampDTO>(`/admin/camps/${campId}`, {
+    apiRequest<CampDTO>(`/api/admin/camps/${campId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
   deleteCamp: (campId: number) =>
-    apiRequest<{ message: string }>(`/admin/camps/${campId}`, {
+    apiRequest<{ message: string }>(`/api/admin/camps/${campId}`, {
       method: "DELETE",
     }),
   requests: () =>
     apiRequest<{
       donation_requests: DonationRequestDTO[];
       blood_requests: BloodRequestDTO[];
-    }>("/admin/requests"),
+    }>("/api/admin/requests"),
   reviewDonationRequest: (
     requestId: number,
     status: "approved" | "rejected",
     adminMessage = "",
   ) =>
     apiRequest<{ message: string }>(
-      `/admin/requests/donation/${requestId}/review`,
+      `/api/admin/requests/donation/${requestId}/review`,
       {
         method: "PATCH",
         body: JSON.stringify({ status, admin_message: adminMessage }),
@@ -368,14 +368,14 @@ export const adminApi = {
     adminMessage = "",
   ) =>
     apiRequest<{ message: string }>(
-      `/admin/requests/blood/${requestId}/review`,
+      `/api/admin/requests/blood/${requestId}/review`,
       {
         method: "PATCH",
         body: JSON.stringify({ status, admin_message: adminMessage }),
       },
     ),
   stock: async () => {
-    const response = await apiRequest<unknown>("/admin/blood-stock");
+    const response = await apiRequest<unknown>("/api/admin/blood-stock");
     return extractList<BloodStockDTO>(response);
   },
   addStock: (payload: {
@@ -383,7 +383,7 @@ export const adminApi = {
     units: number;
     expiry_date: string;
   }) =>
-    apiRequest<BloodStockDTO>("/admin/blood-stock", {
+    apiRequest<BloodStockDTO>("/api/admin/blood-stock", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -391,34 +391,34 @@ export const adminApi = {
     stockId: number,
     payload: { blood_group?: string; units?: number; expiry_date?: string },
   ) =>
-    apiRequest<BloodStockDTO>(`/admin/blood-stock/${stockId}`, {
+    apiRequest<BloodStockDTO>(`/api/admin/blood-stock/${stockId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
   deleteStock: (stockId: number) =>
-    apiRequest<{ message: string }>(`/admin/blood-stock/${stockId}`, {
+    apiRequest<{ message: string }>(`/api/admin/blood-stock/${stockId}`, {
       method: "DELETE",
     }),
   hospitalsList: async () => {
     const response = await apiRequest<{ id: number; hospital_name: string }[]>(
-      "/admin/hospitals-list",
+      "/api/admin/hospitals-list",
     );
     return response;
   },
   clinicsList: async () => {
     const response = await apiRequest<{ id: number; clinic_name: string }[]>(
-      "/admin/clinics-list",
+      "/api/admin/clinics-list",
     );
     return response;
   },
   dashboardStats: () =>
-    apiRequest<DashboardStatsDTO>("/admin/dashboard-stats"),
+    apiRequest<DashboardStatsDTO>("/api/admin/dashboard-stats"),
 };
 
 export const profileApi = {
-  get: () => apiRequest<UserProfileDTO>("/user/profile"),
+  get: () => apiRequest<UserProfileDTO>("/api/user/profile"),
   update: (payload: Record<string, unknown>) =>
-    apiRequest<UserProfileDTO>("/user/profile", {
+    apiRequest<UserProfileDTO>("/api/user/profile", {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
@@ -426,7 +426,7 @@ export const profileApi = {
     current_password: string;
     new_password: string;
   }) =>
-    apiRequest<{ message: string }>("/user/change-password", {
+    apiRequest<{ message: string }>("/api/user/change-password", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -434,26 +434,26 @@ export const profileApi = {
 
 export const publicApi = {
   subscribeNewsletter: (email: string) =>
-    apiRequest<{ message: string }>("/public/subscribe", {
+    apiRequest<{ message: string }>("/api/public/subscribe", {
       method: "POST",
       auth: false,
       body: JSON.stringify({ email }),
     }),
   camps: async () => {
-    const response = await apiRequest<unknown>("/public/camps", {
+    const response = await apiRequest<unknown>("/api/public/camps", {
       auth: false,
     });
     return extractList<CampDTO>(response);
   },
   stockSummary: async () => {
     const response = await apiRequest<StockSummaryDTO[]>(
-      "/public/stock-summary",
+      "/api/public/stock-summary",
       { auth: false },
     );
     return response;
   },
   stockHealth: () =>
-    apiRequest<StockHealthDTO>("/public/stock-health", { auth: false }),
+    apiRequest<StockHealthDTO>("/api/public/stock-health", { auth: false }),
 };
 
 function inferCampStatus(dateString: string) {
