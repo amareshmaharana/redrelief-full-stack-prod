@@ -24,7 +24,10 @@ export const registerSchema = z
     contact_person: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    if (!value.email && !value.mobile) {
+    const hasEmail = Boolean(value.email && value.email.trim());
+    const hasMobile = Boolean(value.mobile && value.mobile.trim());
+
+    if (!hasEmail && !hasMobile) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Email or mobile is required.",
@@ -37,6 +40,27 @@ export const registerSchema = z
         path: ["password"],
         message: "Password is required for admin, hospital, and clinic.",
       });
+    }
+
+    if (value.role === "hospital" || value.role === "clinic") {
+      if (!value.hospital_name || !value.hospital_name.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["hospital_name"],
+          message:
+            value.role === "clinic"
+              ? "Clinic name is required."
+              : "Hospital name is required.",
+        });
+      }
+
+      if (!value.registration_number || !value.registration_number.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["registration_number"],
+          message: "Registration number is required.",
+        });
+      }
     }
   });
 
