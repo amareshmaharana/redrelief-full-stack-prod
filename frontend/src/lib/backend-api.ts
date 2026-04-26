@@ -119,7 +119,7 @@ export const authApi = {
       {
         method: "POST",
         auth: false,
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       },
     ),
 
@@ -156,7 +156,7 @@ export const authApi = {
     apiRequest<{ message: string }>("/api/forgot-password/request", {
       method: "POST",
       auth: false,
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
     }),
 
   forgotPasswordReset: (payload: { token: string; new_password: string }) =>
