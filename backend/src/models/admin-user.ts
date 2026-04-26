@@ -8,7 +8,7 @@ const adminUserSchema = new Schema(
     password: { type: String, default: null },
     role: { type: String, default: "admin", enum: ["admin"], required: true },
     isVerified: { type: Boolean, default: false },
-    phone: { type: String, default: null, unique: true, sparse: true, trim: true },
+    phone: { type: String, default: undefined, unique: true, sparse: true, trim: true },
     permissions: { type: [String], default: [] },
   },
   { timestamps: true },
