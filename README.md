@@ -35,31 +35,20 @@ In critical care scenarios, minutes matter. **RedRelief** helps bridge communica
 
 - 🔐 JWT-based authentication with access + refresh tokens
 - 👥 Role-based access control for Admin, Donor, Recipient, Hospital, Clinic
-- 🧠 Login role is detected from the stored database record only
-- 📝 Direct registration with immediate session issuance
-- ✉️ Donor and recipient can log in with email only; admin, hospital, and clinic require password
-- 🏥 Hospital/Clinic blood stock CRUD
-- 🩸 Recipient/Hospital/Clinic blood request workflows
+ Atlas-only MongoDB persistence for user, profile, request, and stock data
 - ✅ Admin review pipelines for donation and blood requests
 - 🔔 In-app notifications with read/mark-all-read support
 - 📡 Socket.IO real-time notification events
 - 🌐 Public endpoints for camps, stock summary, and stock health
 - 📬 Newsletter subscription endpoint
-- 📁 Multipart request handling for medical docs and proofs
 - 🎨 Shared button and hover colors are themed per role across dashboards and profiles
 
 ---
-
-## 🏗️ Architecture Overview
-
-```text
-Frontend (React + Vite + TypeScript)
+ 🧹 Registration now ignores stale null-phone records and no longer relies on a local fallback database
   -> API Client Layer (token handling, refresh retry, error normalization, role lookup)
   -> Backend REST API (Express + TypeScript)
   -> MongoDB (Mongoose models)
-  -> Socket.IO (realtime notifications)
-  -> Redis Adapter (optional, for socket scaling)
-```
+ The register flow now validates email/mobile against real linked accounts only and rejects stale profile-only records
 
 - Frontend and backend are separated into dedicated folders (`frontend/`, `backend/`)
 - Frontend consumes REST endpoints and listens to realtime events
@@ -68,7 +57,6 @@ Frontend (React + Vite + TypeScript)
 
 ---
 
-## 🛠️ Tech Stack
 
 ### Frontend
 
@@ -83,6 +71,12 @@ Frontend notes:
 
 - Login form uses live role lookup before submit feedback is shown
 - Password visibility and required markers are handled through shared UI components
+
+Important:
+
+- The backend now uses Atlas only.
+- Do not configure a local MongoDB fallback for this project.
+- If SRV DNS lookup fails, use `MONGODB_URI_DIRECT`.
 - Public role chooser routes users into the correct login/register flow
 
 ### Backend
@@ -127,7 +121,7 @@ Frontend notes:
 ### 1) Clone repository
 
 ```bash
-git clone https://github.com/OWNER/REPO.git
+git clone https://github.com/amareshmaharana/redrelief-full-stack-prod
 cd REPO
 ```
 
@@ -143,7 +137,7 @@ Create `.env` in `backend/`:
 ```env
 NODE_ENV=development
 PORT=5000
-MONGODB_URI=mongodb://127.0.0.1:27017/your_db_name
+MONGODB_URI=
 
 JWT_ACCESS_SECRET=replace-with-strong-secret
 JWT_REFRESH_SECRET=replace-with-strong-secret
