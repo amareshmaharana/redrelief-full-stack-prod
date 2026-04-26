@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -18,48 +18,58 @@ export default function LoginForm() {
   const [detectedRole, setDetectedRole] = useState<string | null>(null);
   const [passwordRequired, setPasswordRequired] = useState(false);
   const [emailCheckingLoading, setEmailCheckingLoading] = useState(false);
+  const emailCheckRequestId = useRef(0);
 
   const isValidEmailFormat = (emailValue: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(emailValue);
+    return emailRegex.test(emailValue.trim());
   };
 
-  const validateEmail = async (emailValue: string) => {
-    if (!emailValue || !emailValue.trim()) {
+  useEffect(() => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      emailCheckRequestId.current += 1;
       setDetectedRole(null);
       setPasswordRequired(false);
+      setEmailCheckingLoading(false);
       return;
     }
 
-    setEmailCheckingLoading(true);
-    try {
-      const response = await authApi.checkEmailRole(emailValue);
-      setDetectedRole(response.role);
-      setPasswordRequired(response.requiresPassword);
-    } catch {
-      setDetectedRole(null);
-      setPasswordRequired(false);
-    } finally {
-      setEmailCheckingLoading(false);
-    }
-  };
+    const timeout = setTimeout(async () => {
+      const requestId = ++emailCheckRequestId.current;
+      setEmailCheckingLoading(true);
 
-  const handleEmailChange = (emailValue: string) => {
-    setEmail(emailValue);
-    // Debounce the email validation
-    const timeout = setTimeout(() => {
-      validateEmail(emailValue);
+      try {
+        const response = await authApi.checkEmailRole(normalizedEmail);
+        if (requestId !== emailCheckRequestId.current) {
+          return;
+        }
+        setDetectedRole(response.role);
+        setPasswordRequired(response.requiresPassword);
+      } catch {
+        if (requestId !== emailCheckRequestId.current) {
+          return;
+        }
+        setDetectedRole(null);
+        setPasswordRequired(false);
+      } finally {
+        if (requestId === emailCheckRequestId.current) {
+          setEmailCheckingLoading(false);
+        }
+      }
     }, 500);
+
     return () => clearTimeout(timeout);
-  };
+  }, [email]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const payload: Record<string, unknown> = {
-        email,
+        email: normalizedEmail,
         ...(password.trim() ? { password } : {}),
       };
 
@@ -105,7 +115,7 @@ export default function LoginForm() {
               <Input
                 type="email"
                 value={email}
-                onChange={(event) => handleEmailChange(event.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
                 required
               />
