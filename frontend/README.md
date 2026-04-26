@@ -22,35 +22,24 @@ The frontend is implemented as a complete multi-role web application with:
 
 ## Core Features ✨
 
-- Public experience: landing, camps, camp details, stock visibility, contact, legal pages 🌐
-- Auth flows: login, register, forgot password/reset, OTP verify route (available) 🔐
-- Login role is detected from the database record; donor/recipient can log in with email only, while admin/hospital/clinic require password
-- Role dashboards with dedicated pages, navigation, and role-themed button/hover colors 📊
-- Admin controls for users, camps, blood stock, requests, profile 🛠️
-- Real-time notification channel using Socket.IO 🔔
-- Resilient API error handling with clear backend connectivity messages 🧯
+- The login role badge only appears after the backend confirms a stored account for that email
+- Registration/login now rely on Atlas-backed user records only; stale local-db data is no longer used
 
 ## Tech Stack 🧩
 
 - React 18
 - TypeScript 5
-- Vite 5
-- React Router 6
-- TanStack React Query 5
 - Tailwind CSS + shadcn/ui (Radix primitives)
 - Framer Motion
 - Socket.IO client
-- Vitest + Testing Library
-- ESLint 9
-
+- The UI no longer treats unsaved emails as a real role match.
+- Missing mobile values are ignored instead of causing false `mobile already registered` errors.
 ## Project Structure 🗂️
 
 ```text
 frontend/
   src/
-    components/
-      layout/           # app shell, navbar, dashboard layout
-      dashboard/        # dashboard-oriented reusable widgets
+- If login/register behaves oddly, restart the backend so it picks up the latest Atlas-only auth changes.
       dialogs/          # modal/dialog components
       ui/               # shadcn/ui primitives and wrappers
     pages/
