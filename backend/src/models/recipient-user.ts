@@ -9,7 +9,7 @@ const recipientUserSchema = new Schema(
     role: { type: String, default: "recipient", enum: ["recipient"], required: true },
     isVerified: { type: Boolean, default: false },
     bloodGroup: { type: String, default: null, enum: ["A_POS", "A_NEG", "B_POS", "B_NEG", "AB_POS", "AB_NEG", "O_POS", "O_NEG"] },
-    phone: { type: String, default: null, unique: true, sparse: true, trim: true },
+    phone: { type: String, default: undefined, unique: true, sparse: true, trim: true },
     dateOfBirth: { type: Date, default: null },
     medicalCondition: { type: String, default: null, trim: true },
   },
