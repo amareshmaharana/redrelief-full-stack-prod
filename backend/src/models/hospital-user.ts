@@ -10,7 +10,7 @@ const hospitalUserSchema = new Schema(
     isVerified: { type: Boolean, default: false },
     hospitalName: { type: String, required: true, trim: true },
     registrationNumber: { type: String, required: true, trim: true, unique: true },
-    phone: { type: String, default: null, unique: true, sparse: true, trim: true },
+    phone: { type: String, default: undefined, unique: true, sparse: true, trim: true },
     address: { type: String, default: null, trim: true },
     city: { type: String, default: null, trim: true },
     state: { type: String, default: null, trim: true },
