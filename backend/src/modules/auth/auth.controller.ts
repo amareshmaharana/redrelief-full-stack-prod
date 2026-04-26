@@ -93,6 +93,15 @@ function hasOtpTarget(body: { email?: string | null; mobile?: string | null }) {
   );
 }
 
+function normalizeEmailInput(email?: string | null) {
+  if (typeof email !== "string") {
+    return null;
+  }
+
+  const normalized = email.trim().toLowerCase();
+  return normalized || null;
+}
+
 async function findUserByIdentifier(params: {
   email?: string;
   mobile?: string;
@@ -101,7 +110,11 @@ async function findUserByIdentifier(params: {
 
   let user: RoleUser | null = null;
   if (params.email) {
-    const normalizedEmail = params.email.toLowerCase();
+    const normalizedEmail = normalizeEmailInput(params.email);
+    if (!normalizedEmail) {
+      return null;
+    }
+
     user =
       (await DonorUserModel.findOne({ email: normalizedEmail }).lean()) ||
       (await RecipientUserModel.findOne({ email: normalizedEmail }).lean()) ||
@@ -147,7 +160,7 @@ async function createAndSendOtp(params: {
     id: await getNextSequence("otpCodes"),
     code,
     purpose: params.purpose,
-    targetEmail: params.email?.toLowerCase() ?? null,
+    targetEmail: normalizeEmailInput(params.email),
     targetPhone: params.mobile ?? null,
     role: params.role ?? null,
     payloadJson: params.payload ?? null,
@@ -177,24 +190,26 @@ async function assertRegistrationTargetAvailable(params: {
   email?: string | null;
   mobile?: string | null;
 }) {
-  if (params.email) {
+  const normalizedEmail = normalizeEmailInput(params.email);
+
+  if (normalizedEmail) {
     const existingEmail =
       (await DonorUserModel.findOne({
-        email: params.email.toLowerCase(),
+        email: normalizedEmail,
       }).lean()) ||
       (await RecipientUserModel.findOne({
-        email: params.email.toLowerCase(),
+        email: normalizedEmail,
       }).lean()) ||
       (await HospitalUserModel.findOne({
-        email: params.email.toLowerCase(),
+        email: normalizedEmail,
       }).lean()) ||
       (await ClinicUserModel.findOne({
-        email: params.email.toLowerCase(),
+        email: normalizedEmail,
       }).lean()) ||
       (await AdminUserModel.findOne({
-        email: params.email.toLowerCase(),
+        email: normalizedEmail,
       }).lean()) ||
-      (await UserModel.findOne({ email: params.email.toLowerCase() }).lean());
+      (await UserModel.findOne({ email: normalizedEmail }).lean());
     if (existingEmail) {
       throw new AppError(409, "Email already registered. Please login.");
     }
@@ -239,7 +254,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const role = payload.role;
   const Model = getRegistrationModelForRole(role);
-  const normalizedEmail = payload.email ? payload.email.toLowerCase() : null;
+  const normalizedEmail = normalizeEmailInput(payload.email);
   const normalizedMobile = payload.mobile ?? null;
 
   const existingByEmail = normalizedEmail
@@ -316,9 +331,31 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   try {
     user = await Model.create(userData);
   } catch (error) {
-    const mongoError = error as { code?: number };
+    const mongoError = error as {
+      code?: number;
+      keyPattern?: Record<string, unknown>;
+    };
     if (mongoError.code !== 11000) {
       throw error;
+    }
+
+    const duplicateKey = mongoError.keyPattern
+      ? Object.keys(mongoError.keyPattern)[0]
+      : undefined;
+
+    if (duplicateKey === "registrationNumber") {
+      throw new AppError(
+        409,
+        "Registration number already registered. Please use a different registration number.",
+      );
+    }
+
+    if (duplicateKey === "email") {
+      throw new AppError(409, "Email already registered. Please login.");
+    }
+
+    if (duplicateKey === "phone") {
+      throw new AppError(409, "Mobile already registered. Please login.");
     }
 
     const fallbackExistingByEmail = normalizedEmail
@@ -373,7 +410,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   await connectMongo();
 
   const payload = loginSchema.parse(req.body);
-  const normalizedEmail = payload.email.toLowerCase();
+  const normalizedEmail = normalizeEmailInput(payload.email);
+
+  if (!normalizedEmail) {
+    throw new AppError(400, "Email is required.");
+  }
 
   const identity = await findUserByIdentifier({
     email: normalizedEmail,
@@ -408,9 +449,10 @@ export const checkEmailRole = asyncHandler(async (req: Request, res: Response) =
     throw new AppError(400, "Email is required.");
   }
 
-  const identity = await findUserByIdentifier({
-    email: email.toLowerCase(),
-  });
+  const normalizedEmail = normalizeEmailInput(email);
+  const identity = normalizedEmail
+    ? await findUserByIdentifier({ email: normalizedEmail })
+    : null;
 
   if (!identity) {
     res.status(404).json(ok({}, "User not found."));
@@ -477,7 +519,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
   };
 
   if (payload.email) {
-    otpQuery.targetEmail = payload.email.toLowerCase();
+    otpQuery.targetEmail = normalizeEmailInput(payload.email);
   }
 
   if (payload.mobile) {
@@ -531,7 +573,9 @@ export const forgotPasswordSendOtp = asyncHandler(
     const identity = await findUserByIdentifier({ email: payload.email });
 
     // Always return a generic success response to prevent account enumeration.
-    if (!identity || !payload.email) {
+    const normalizedEmail = normalizeEmailInput(payload.email);
+
+    if (!identity || !normalizedEmail) {
       res.json(ok({}, "If an account exists for this email, a reset link has been sent."));
       return;
     }
@@ -543,7 +587,7 @@ export const forgotPasswordSendOtp = asyncHandler(
       id: await getNextSequence("otpCodes"),
       code: token,
       purpose: "password_reset",
-      targetEmail: payload.email.toLowerCase(),
+      targetEmail: normalizedEmail,
       targetPhone: null,
       role: identity.user.role,
       payloadJson: { userId: identity.user.id },
@@ -553,7 +597,7 @@ export const forgotPasswordSendOtp = asyncHandler(
 
     const frontendBase = env.FRONTEND_URL ?? env.CORS_ORIGIN;
     const resetLink = `${frontendBase}/reset-password?token=${encodeURIComponent(token)}`;
-    await sendPasswordResetEmail(payload.email.toLowerCase(), resetLink);
+    await sendPasswordResetEmail(normalizedEmail, resetLink);
 
     res.json(ok({}, "Check your email for a secure password reset link."));
   },
