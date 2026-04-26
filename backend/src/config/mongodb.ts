@@ -64,14 +64,10 @@ export async function connectMongo() {
       return connectWithUri(env.MONGODB_URI_DIRECT);
     }
 
-    if (isSrvDnsError(error) && env.MONGODB_URI_FALLBACK) {
-      console.warn("MongoDB SRV DNS lookup failed. Retrying with fallback URI.");
-      return connectWithUri(env.MONGODB_URI_FALLBACK);
-    }
-
-    if (env.MONGODB_URI_FALLBACK) {
-      console.warn("MongoDB Atlas connection failed. Retrying with fallback URI.");
-      return connectWithUri(env.MONGODB_URI_FALLBACK);
+    if (isSrvDnsError(error)) {
+      throw new Error(
+        "MongoDB Atlas SRV lookup failed. Set MONGODB_URI_DIRECT to the direct Atlas connection string or fix DNS access to the SRV host.",
+      );
     }
 
     throw error;
