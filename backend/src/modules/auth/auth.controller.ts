@@ -102,6 +102,15 @@ function normalizeEmailInput(email?: string | null) {
   return normalized || null;
 }
 
+function normalizeMobileInput(mobile?: string | null) {
+  if (typeof mobile !== "string") {
+    return null;
+  }
+
+  const normalized = mobile.trim();
+  return normalized || null;
+}
+
 async function findUserByIdentifier(params: {
   email?: string;
   mobile?: string;
@@ -123,15 +132,20 @@ async function findUserByIdentifier(params: {
       (await AdminUserModel.findOne({ email: normalizedEmail }).lean()) ||
       (await UserModel.findOne({ email: normalizedEmail }).lean());
   } else if (params.mobile) {
+    const normalizedMobile = normalizeMobileInput(params.mobile);
+    if (!normalizedMobile) {
+      return null;
+    }
+
     user =
-      (await DonorUserModel.findOne({ phone: params.mobile }).lean()) ||
-      (await RecipientUserModel.findOne({ phone: params.mobile }).lean()) ||
-      (await HospitalUserModel.findOne({ phone: params.mobile }).lean()) ||
-      (await ClinicUserModel.findOne({ phone: params.mobile }).lean()) ||
-      (await AdminUserModel.findOne({ phone: params.mobile }).lean());
+      (await DonorUserModel.findOne({ phone: normalizedMobile }).lean()) ||
+      (await RecipientUserModel.findOne({ phone: normalizedMobile }).lean()) ||
+      (await HospitalUserModel.findOne({ phone: normalizedMobile }).lean()) ||
+      (await ClinicUserModel.findOne({ phone: normalizedMobile }).lean()) ||
+      (await AdminUserModel.findOne({ phone: normalizedMobile }).lean());
 
     if (!user) {
-      const profile = await ProfileModel.findOne({ phone: params.mobile }).lean();
+      const profile = await ProfileModel.findOne({ phone: normalizedMobile }).lean();
       if (profile) {
         user = await UserModel.findOne({ id: profile.userId }).lean();
       }
@@ -144,6 +158,17 @@ async function findUserByIdentifier(params: {
 
   const profile = await ProfileModel.findOne({ userId: user.id }).lean();
   return { user: user as any, profile };
+}
+
+async function findUserByIdAcrossRoleCollections(userId: number) {
+  return (
+    (await DonorUserModel.findOne({ id: userId }).lean()) ||
+    (await RecipientUserModel.findOne({ id: userId }).lean()) ||
+    (await HospitalUserModel.findOne({ id: userId }).lean()) ||
+    (await ClinicUserModel.findOne({ id: userId }).lean()) ||
+    (await AdminUserModel.findOne({ id: userId }).lean()) ||
+    (await UserModel.findOne({ id: userId }).lean())
+  );
 }
 
 async function createAndSendOtp(params: {
@@ -191,6 +216,7 @@ async function assertRegistrationTargetAvailable(params: {
   mobile?: string | null;
 }) {
   const normalizedEmail = normalizeEmailInput(params.email);
+  const normalizedMobile = normalizeMobileInput(params.mobile);
 
   if (normalizedEmail) {
     const existingEmail =
@@ -215,12 +241,22 @@ async function assertRegistrationTargetAvailable(params: {
     }
   }
 
-  if (params.mobile) {
-    const existingPhone = await ProfileModel.findOne({
-      phone: params.mobile,
+  if (normalizedMobile) {
+    const existingPhoneProfile = await ProfileModel.findOne({
+      phone: normalizedMobile,
     }).lean();
-    if (existingPhone) {
-      throw new AppError(409, "Mobile already registered. Please login.");
+
+    if (existingPhoneProfile) {
+      const linkedUser = await findUserByIdAcrossRoleCollections(
+        existingPhoneProfile.userId,
+      );
+
+      if (linkedUser) {
+        throw new AppError(409, "Mobile already registered. Please login.");
+      }
+
+      // Keep registration unblocked by removing stale profiles that no longer map to a user.
+      await ProfileModel.deleteOne({ id: existingPhoneProfile.id });
     }
   }
 }
@@ -255,7 +291,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const role = payload.role;
   const Model = getRegistrationModelForRole(role);
   const normalizedEmail = normalizeEmailInput(payload.email);
-  const normalizedMobile = payload.mobile ?? null;
+  const normalizedMobile = normalizeMobileInput(payload.mobile);
+
+  await assertRegistrationTargetAvailable({
+    email: normalizedEmail,
+    mobile: normalizedMobile,
+  });
 
   const existingByEmail = normalizedEmail
     ? await Model.findOne({ email: normalizedEmail }).lean()
@@ -296,7 +337,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   if (role === "donor" || role === "recipient") {
     userData.bloodGroup = toBloodGroupEnum(payload.blood_group ?? null);
-    userData.phone = payload.mobile ?? null;
+    if (normalizedMobile) {
+      userData.phone = normalizedMobile;
+    }
     userData.dateOfBirth = payload.date_of_birth
       ? new Date(`${payload.date_of_birth}T00:00:00.000Z`)
       : null;
@@ -314,7 +357,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     userData.hospitalName = role === "hospital" ? orgName : undefined;
     userData.clinicName = role === "clinic" ? orgName : undefined;
     userData.registrationNumber = payload.registration_number ?? null;
-    userData.phone = payload.mobile ?? null;
+    if (normalizedMobile) {
+      userData.phone = normalizedMobile;
+    }
     userData.address = payload.address ?? null;
     userData.city = payload.city ?? null;
     userData.state = payload.state ?? null;
@@ -323,7 +368,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (role === "admin") {
-    userData.phone = payload.mobile ?? null;
+    if (normalizedMobile) {
+      userData.phone = normalizedMobile;
+    }
     userData.permissions = [];
   }
 
@@ -379,7 +426,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     await ProfileModel.create({
       id: await getNextSequence("profiles"),
       userId: user.id,
-      phone: payload.mobile ?? null,
+      phone: normalizedMobile ?? undefined,
       address: payload.address ?? null,
       bloodGroup: toBloodGroupEnum(payload.blood_group ?? null),
       dateOfBirth: payload.date_of_birth
