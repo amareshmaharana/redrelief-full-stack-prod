@@ -5,7 +5,7 @@ const profileSchema = new Schema(
   {
     id: { type: Number, required: true, unique: true, index: true },
     userId: { type: Number, required: true, unique: true, index: true },
-    phone: { type: String, default: null, unique: true, sparse: true, trim: true },
+    phone: { type: String, default: undefined, unique: true, sparse: true, trim: true },
     address: { type: String, default: null, trim: true },
     bloodGroup: { type: String, enum: bloodGroupValues, default: null },
     dateOfBirth: { type: Date, default: null },
