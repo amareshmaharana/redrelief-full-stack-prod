@@ -15,6 +15,7 @@ This README documents what is currently implemented in this repository.
 - Forgot password via reset-link token flow
 - Blood stock, camp, request, profile, notification, and public modules
 - Socket.IO realtime notifications with optional Redis adapter
+- Atlas-only MongoDB usage; no local fallback database
 
 ## Important Current Auth Behavior 🔐
 
@@ -26,6 +27,7 @@ This README documents what is currently implemented in this repository.
 - Password is required for `admin`, `hospital`, and `clinic` login.
 - Password is optional for `donor` and `recipient` login.
 - Registration is idempotent per role in current flow (existing same-role account can return session).
+- Registration ignores stale profile-only phone rows and only blocks on real linked users.
 
 ## Stack 🧰
 
@@ -82,6 +84,12 @@ Common defaults from code:
 - `CORS_ORIGIN=http://localhost:8080`
 - `JWT_ACCESS_EXPIRES=15m`
 - `JWT_REFRESH_EXPIRES=7d`
+
+MongoDB notes:
+
+- Use Atlas as the primary database.
+- If the SRV URI cannot resolve, set `MONGODB_URI_DIRECT` to the direct Atlas connection string.
+- Do not use a local `mongodb://127.0.0.1:27017/...` fallback for this app.
 
 Optional:
 
@@ -192,3 +200,4 @@ Public (`/api/public`):
 - Global rate limit: 120 requests/minute/IP.
 - CORS is controlled by `CORS_ORIGIN`.
 - API responses follow the `{ success, data, message }` envelope.
+- Empty mobile numbers should not be stored as `null`; missing phones are omitted to avoid false duplicate-key conflicts.
