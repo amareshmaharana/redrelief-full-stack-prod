@@ -142,7 +142,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <Landing />} />
+      <Route path="/" element={<Landing />} />
       <Route path="/about" element={<About />} />
       <Route path="/camps" element={<CampSchedule />} />
       <Route path="/camps/:campId" element={<CampDetails />} />
@@ -152,13 +152,13 @@ function AppRoutes() {
       <Route path="/blood-stocks" element={<BloodStocks />} />
 
       {/* Auth */}
-      <Route path="/login" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <Login />} />
-      <Route path="/register" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <Register />} />
-      <Route path="/login/form" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <LoginForm />} />
-      <Route path="/register/form" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <RegisterForm />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/login/form" element={<LoginForm />} />
+      <Route path="/register/form" element={<RegisterForm />} />
       <Route path="/verify-otp" element={<OTPVerification />} />
-      <Route path="/forgot-password" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <ForgotPassword />} />
-      <Route path="/reset-password" element={session ? <Navigate to={`/${session.user.role}`} replace /> : <ResetPassword />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Admin */}
       <Route path="/admin" element={<ProtectedHome role="admin" />} />
