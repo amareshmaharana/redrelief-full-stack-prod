@@ -184,7 +184,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen">
-      <Navbar />
+      <Navbar publicOnly />
 
       {/* Hero */}
       <section className="relative overflow-hidden py-24 md:py-32">
