@@ -307,19 +307,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const existing = existingByEmail ?? existingByPhone;
 
   if (existing) {
-    if (requiresPassword(role)) {
-      if (!payload.password || !existing.password) {
-        throw new AppError(401, "Invalid credentials.");
-      }
-      const matches = await comparePassword(payload.password, existing.password);
-      if (!matches) {
-        throw new AppError(401, "Invalid credentials.");
-      }
-    }
-
-    const session = await issueSession(existing as RoleUser);
-    res.json(ok(session, "Account already exists. Logged in."));
-    return;
+    throw new AppError(409, "Account already exists. Please login.");
   }
 
   const hashedPassword = payload.password
@@ -417,9 +405,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       throw new AppError(409, "Account already exists. Please login.");
     }
 
-    const session = await issueSession(fallbackExisting as RoleUser);
-    res.json(ok(session, "Account already exists. Logged in."));
-    return;
+    throw new AppError(409, "Account already exists. Please login.");
   }
 
   try {
