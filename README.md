@@ -7,7 +7,7 @@
 [![Issues](https://img.shields.io/github/issues/OWNER/REPO)](https://github.com/OWNER/REPO/issues)
 [![License](https://img.shields.io/github/license/OWNER/REPO)](LICENSE)
 
-[![Demo](https://img.shields.io/badge/Demo-Live%20Link-ff4d4f?style=for-the-badge)](https://redrelief.vercel.app/)
+[![LIVE](https://img.shields.io/badge/Demo-Live%20Link-ff4d4f?style=for-the-badge)](https://redrelief.vercel.app/)
 ![API](https://img.shields.io/badge/API-REST-0ea5e9?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-22c55e?style=for-the-badge)
 
@@ -34,8 +34,10 @@ In critical care scenarios, minutes matter. **RedRelief** helps bridge communica
 ## ✨ Features
 
 - 🔐 JWT-based authentication with access + refresh tokens
+- 🔒 Browser-session scoped auth state (no long-lived local auth persistence)
+- 🛡️ Public landing and marketing pages do not expose authenticated user identity
 - 👥 Role-based access control for Admin, Donor, Recipient, Hospital, Clinic
- Atlas-only MongoDB persistence for user, profile, request, and stock data
+- 🗄️ Atlas-only MongoDB persistence for user, profile, request, and stock data
 - ✅ Admin review pipelines for donation and blood requests
 - 🔔 In-app notifications with read/mark-all-read support
 - 📡 Socket.IO real-time notification events
@@ -44,11 +46,13 @@ In critical care scenarios, minutes matter. **RedRelief** helps bridge communica
 - 🎨 Shared button and hover colors are themed per role across dashboards and profiles
 
 ---
- 🧹 Registration now ignores stale null-phone records and no longer relies on a local fallback database
-  -> API Client Layer (token handling, refresh retry, error normalization, role lookup)
-  -> Backend REST API (Express + TypeScript)
-  -> MongoDB (Mongoose models)
- The register flow now validates email/mobile against real linked accounts only and rejects stale profile-only records
+
+### ✅ Recent Auth and Session Hardening
+
+- Registration validates email/mobile against real linked accounts and rejects stale profile-only records
+- Existing-account registration no longer auto-logs users in; users must complete explicit login
+- Frontend session data is scoped to browser session storage to reduce shared-device leakage
+- Public landing renders as public and does not auto-expose authenticated navbar identity
 
 - Frontend and backend are separated into dedicated folders (`frontend/`, `backend/`)
 - Frontend consumes REST endpoints and listens to realtime events
@@ -205,12 +209,17 @@ npm run dev
 - Login uses the role stored in the matched database record, not a client-provided role field
 - `donor` and `recipient` accounts can log in with email only
 - `admin`, `hospital`, and `clinic` accounts require password during login
+- Frontend auth session is stored in session storage (browser-session scoped)
+- Legacy local persisted auth key is cleared to prevent stale identity exposure
+- Public routes remain public even if a session exists in another tab context
+- Registration for an already-existing account returns conflict and requires login (no auto-login fallback)
 
 ### Frontend auth UX
 
 - `POST /api/check-email-role` is used by the login form to detect the role for a typed email
 - The login UI shows `Login with <role>` after a valid email matches an account
 - The password label becomes required automatically for `admin`, `hospital`, and `clinic`
+- Landing page uses a public-only navbar mode so user identity is not displayed on public entry pages
 
 ### Roles
 
