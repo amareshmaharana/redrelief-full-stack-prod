@@ -18,24 +18,34 @@ export interface AuthSession {
   user: BackendUser;
 }
 
+function readSessionStorage() {
+  return sessionStorage.getItem(AUTH_STORAGE_KEY);
+}
+
 export function getAuthSession(): AuthSession | null {
-  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  const raw = readSessionStorage();
   if (!raw) {
+    // Clear any legacy persisted session to avoid exposing stale auth state.
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
   try {
     return JSON.parse(raw) as AuthSession;
   } catch {
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
 }
 
 export function setAuthSession(session: AuthSession) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  localStorage.removeItem(AUTH_STORAGE_KEY);
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function clearAuthSession() {
+  sessionStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(AUTH_STORAGE_KEY);
   window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
