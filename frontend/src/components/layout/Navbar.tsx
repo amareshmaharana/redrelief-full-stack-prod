@@ -125,12 +125,17 @@ const roleThemes: Record<
   },
 };
 
-export function Navbar() {
+function NavbarContent({
+  publicOnly = false,
+}: {
+  publicOnly?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const session = useAuthSession();
+  const activeSession = publicOnly ? null : session;
 
   // Lock body scroll when menu is open
   useEffect(() => {
@@ -156,10 +161,11 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navItems = getNavItems(session?.user.role);
-  const homeLink = session ? `/${session.user.role}` : "/";
-  const isRoleHome = session && location.pathname === `/${session.user.role}`;
-  const isPublicHome = !session && location.pathname === "/";
+  const navItems = getNavItems(activeSession?.user.role);
+  const homeLink = activeSession ? `/${activeSession.user.role}` : "/";
+  const isRoleHome =
+    activeSession && location.pathname === `/${activeSession.user.role}`;
+  const isPublicHome = !activeSession && location.pathname === "/";
   const useWhiteLinks = (isRoleHome || isPublicHome) && !scrolledPastHero;
 
   return (
@@ -202,15 +208,15 @@ export function Navbar() {
             </div>
 
             <div className="hidden items-center gap-2.5 md:flex">
-              {session ? (
+              {activeSession ? (
                 (() => {
                   const theme =
-                    roleThemes[session.user.role] ?? roleThemes.donor;
+                    roleThemes[activeSession.user.role] ?? roleThemes.donor;
                   const RoleIcon = theme.icon;
                   return (
                     <>
                       <Link
-                        to={`/${session.user.role}`}
+                        to={`/${activeSession.user.role}`}
                         className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 hover:shadow-md ${theme.badge}`}
                       >
                         <RoleIcon className="h-3 w-3" />
@@ -222,11 +228,13 @@ export function Navbar() {
                             <div
                               className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${theme.avatar}`}
                             >
-                              {session.user.full_name.charAt(0).toUpperCase()}
+                              {activeSession.user.full_name
+                                .charAt(0)
+                                .toUpperCase()}
                             </div>
                             <div className="text-left hidden lg:block">
                               <p className="text-sm font-semibold leading-none">
-                                {session.user.full_name}
+                                {activeSession.user.full_name}
                               </p>
                               <p
                                 className={`text-[10px] font-medium mt-0.5 ${theme.accent}`}
@@ -243,10 +251,10 @@ export function Navbar() {
                         >
                           <div className="px-3 py-2 mb-1">
                             <p className="text-sm font-semibold text-foreground">
-                              {session.user.full_name}
+                              {activeSession.user.full_name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {session.user.mobile}
+                              {activeSession.user.mobile}
                             </p>
                           </div>
                           <DropdownMenuSeparator />
@@ -254,7 +262,7 @@ export function Navbar() {
                             asChild
                             className="gap-2.5 rounded-lg cursor-pointer mt-1"
                           >
-                            <Link to={`/${session.user.role}/dashboard`}>
+                            <Link to={`/${activeSession.user.role}/dashboard`}>
                               <LayoutDashboard className="h-4 w-4" /> Dashboard
                             </Link>
                           </DropdownMenuItem>
@@ -262,7 +270,7 @@ export function Navbar() {
                             asChild
                             className="gap-2.5 rounded-lg cursor-pointer"
                           >
-                            <Link to={`/${session.user.role}/profile`}>
+                            <Link to={`/${activeSession.user.role}/profile`}>
                               <Settings className="h-4 w-4" /> Profile Settings
                             </Link>
                           </DropdownMenuItem>
@@ -404,10 +412,10 @@ export function Navbar() {
                 transition={{ delay: 0.45, duration: 0.4 }}
                 className="mt-10 space-y-3"
               >
-                {session ? (
+                {activeSession ? (
                   (() => {
                     const theme =
-                      roleThemes[session.user.role] ?? roleThemes.donor;
+                      roleThemes[activeSession.user.role] ?? roleThemes.donor;
                     const RoleIcon = theme.icon;
                     return (
                       <>
@@ -415,11 +423,13 @@ export function Navbar() {
                           <div
                             className={`flex h-12 w-12 items-center justify-center rounded-full text-base font-bold ${theme.avatar}`}
                           >
-                            {session.user.full_name.charAt(0).toUpperCase()}
+                            {activeSession.user.full_name
+                              .charAt(0)
+                              .toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-base font-semibold text-primary-foreground truncate">
-                              {session.user.full_name}
+                              {activeSession.user.full_name}
                             </p>
                             <p className="text-xs text-primary-foreground/50 flex items-center gap-1 mt-0.5">
                               <RoleIcon className="h-3 w-3" /> {theme.label}{" "}
@@ -432,7 +442,7 @@ export function Navbar() {
                           className={`h-13 w-full rounded-2xl px-4 text-base font-bold shadow-md transition-all hover:scale-[1.02] ${theme.badge}`}
                         >
                           <Link
-                            to={`/${session.user.role}/dashboard`}
+                            to={`/${activeSession.user.role}/dashboard`}
                             onClick={() => setOpen(false)}
                             className="flex items-center justify-center gap-2"
                           >
@@ -494,4 +504,8 @@ export function Navbar() {
       </AnimatePresence>
     </>
   );
+}
+
+export function Navbar({ publicOnly = false }: { publicOnly?: boolean } = {}) {
+  return <NavbarContent publicOnly={publicOnly} />;
 }
